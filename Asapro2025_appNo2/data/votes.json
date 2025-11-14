@@ -1,0 +1,114 @@
+{
+  "114": {
+    "月": {
+      "1": {
+        "class": 15,
+        "free": 45,
+        "garagara": 30,
+        "sukuname": 20,
+        "hutsu": 5,
+        "konzatsu": 10
+      },
+      "2": {
+        "class": 0,
+        "free": 10,
+        "garagara": 5,
+        "sukuname": 5,
+        "hutsu": 0,
+        "konzatsu": 0
+      },
+      "昼休み": {
+        "class": 0,
+        "free": 50,
+        "garagara": 40,
+        "sukuname": 10,
+        "hutsu": 0,
+        "konzatsu": 0
+      }
+    },
+    "水": {
+      "3": {
+        "class": 5,
+        "free": 20,
+        "garagara": 10,
+        "sukuname": 10,
+        "hutsu": 0,
+        "konzatsu": 0
+      },
+      "4": {
+        "class": 1,
+        "free": 3,
+        "garagara": 0,
+        "sukuname": 0,
+        "hutsu": 0,
+        "konzatsu": 0
+      },
+      "6": {
+        "class": 1,
+        "free": 3,
+        "garagara": 0,
+        "sukuname": 0,
+        "hutsu": 0,
+        "konzatsu": 0
+      }
+    },
+    "木": {
+      "4": {
+        "class": 1,
+        "free": 0,
+        "garagara": 0,
+        "sukuname": 0,
+        "hutsu": 0,
+        "konzatsu": 0
+      }
+    },
+    "金": {
+      "1": {
+        "class": 5,
+        "free": 1,
+        "garagara": 0,
+        "sukuname": 0,
+        "hutsu": 0,
+        "konzatsu": 0
+      },
+      "2": {
+        "class": 5,
+        "free": 2,
+        "garagara": 0,
+        "sukuname": 0,
+        "hutsu": 0,
+        "konzatsu": 0
+      }
+    }
+  },
+  "117": {
+    "金": {
+      "1": {
+        "class": 0,
+        "free": 30,
+        "garagara": 25,
+        "sukuname": 5,
+        "hutsu": 0,
+        "konzatsu": 0
+      },
+      "5": {
+        "class": 10,
+        "free": 5,
+        "garagara": 0,
+        "sukuname": 2,
+        "hutsu": 3,
+        "konzatsu": 0
+      }
+    },
+    "木": {
+      "4": {
+        "class": 2,
+        "free": 0,
+        "garagara": 0,
+        "sukuname": 0,
+        "hutsu": 0,
+        "konzatsu": 0
+      }
+    }
+  }
+}

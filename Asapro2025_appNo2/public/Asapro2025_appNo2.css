@@ -1,0 +1,1121 @@
+body {
+    font-family: "Kiwi Maru", "Helvetica Neue", sans-serif;
+    background-color: #fdfffa;
+    margin: 0;
+    padding: 1.5rem 1.5rem;
+    color: #555;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+/* ログイン画面 */
+.login-page {
+    margin: 0;
+    padding: 0;
+}
+
+#login-screen {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #A9C198;
+}
+
+.login-container {
+    text-align: center;
+    width: 80%;
+    max-width: 300px;
+}
+
+.login-logo {
+    width: 120px;
+    margin-bottom: 20px;
+}
+
+.login-container h2 {
+    margin: 10px 0 5px;
+    color: #fff;
+}
+
+.sub-title {
+    color: #fff;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.login-container input {
+    width: 85%;
+    padding: 10px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 5px;
+}
+
+#email {
+    font-family: "Kiwi Maru", sans-serif;
+}
+
+#password {
+    font-family: "Kiwi Maru", sans-serif;
+}
+
+#login-btn {
+    width: 80%;
+    padding: 12px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #c9e0be;
+    color: #ffffff;
+    font-family: "Kiwi Maru", sans-serif;
+    font-weight: bolder;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+#login-btn:hover {
+    background-color: #c2dcb2;
+    transition: 0.2s;
+}
+
+#homePage {
+    padding-top: 150px;
+}
+
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.header-container {
+    display: flex;
+    margin-top: 0.5rem;
+    margin-left: 2rem;
+}
+
+.logo {
+    width: 70px;
+    height: auto;
+    vertical-align: middle;
+}
+
+h1 {
+    font-size: 1.5rem;
+    color: #6D7B60;
+    margin-top: 25px;
+    letter-spacing: 0.2em;
+    text-align: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.header-button {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-btn {
+    background-color: #e7f2dd;
+    border: 2px solid #9abf92;
+    border-radius: 10px;
+    padding: 0.1rem 0.3rem;
+    cursor: pointer;
+}
+
+.filter-btn:hover {
+    background-color: #d7e4ca;
+    border: 2px solid #9abf92;
+    transition: 0.2s;
+}
+
+.logo_filter {
+    width: 35px;
+    height: auto;
+}
+
+.setting-btn {
+    background-color: #e7f2dd;
+    border: 2px solid #9abf92;
+    border-radius: 10px;
+    padding: 0.4rem 0.6rem;
+    margin-right: 2rem;
+    cursor: pointer;
+}
+
+.setting-btn:hover {
+    background-color: #d7e4ca;
+    border: 2px solid #9abf92;
+    transition: 0.2s;
+}
+
+.logo_setting {
+    width: 25px;
+    height: auto;
+}
+
+.legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.legend-blue {
+    color: #5ba3cf;
+    font-size: 1rem;
+}
+
+.legend-red {
+    color: #d88f98;
+    font-size: 1rem;
+}
+
+.header-scroll {
+    position: fixed;
+    top: 0;
+    left: 0;
+    padding: 20px 0px 10px;
+    width: 100%;
+    align-items: center;
+    background: #fdfffa;
+    z-index: 1000;
+}
+
+.notice {
+    text-align: center;
+    margin: 30px auto 40px;
+    font-size: 0.9rem;
+    line-height: 0.7rem;
+}
+
+.notice a {
+    color: #78A156;
+}
+
+.notice a:hover {
+    color: #bcd8a8;
+    transition: 0.2s;
+}
+
+.br-sp {
+    display: none;
+}
+
+.building-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.building-item {
+    font-family: "Kiwi Maru", sans-serif;
+    background-color: #EDF5E7;
+    border: none;
+    border-radius: 10px;
+    padding: 1.15rem;
+    margin: 0px 10px;
+    font-size: 1.1rem;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #6D7B60;
+    cursor: pointer;
+}
+
+.building-item:hover {
+    background-color: #d7e4ca;
+    transition: 0.2s;
+}
+
+.arrow {
+    font-size: 1rem;
+}
+
+/* フィルターモーダル全体 */
+.filter-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.filter-content {
+    background: #fff;
+    border: 3px solid #768765;
+    border-radius: 12px;
+    padding: 1.5rem;
+    width: 85%;
+    max-width: 380px;
+    max-height: 90%;
+    overflow-y: auto;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.filter-header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+h2 {
+    margin: 10px auto;
+    font-size: 1.5rem;
+    color: #6D7B60;
+    text-align: center;
+    letter-spacing: 0.03em;
+}
+
+.close-btn {
+    position: absolute;
+    top: -0.7rem;
+    right: -1rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.logo_close {
+    width: 45px;
+    height: auto;
+    display: block;
+}
+
+.close-btn2 {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.1rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.close-btn2:hover {
+    opacity: .5;
+    transition: 0.2s;
+}
+
+.logo_close2 {
+    width: 20px;
+    height: auto;
+    display: block;
+}
+
+.filter-body label,
+.filter-body p {
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: #555;
+    margin: 1.25rem 0 0.35rem;
+}
+
+.filter-body input[type="text"] {
+    font-family: "Kiwi Maru", sans-serif;
+    width: 95%;
+    padding: 0.6rem;
+    margin: 15px auto 5px;
+    border: 1.5px solid #9abf92;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.filter-body input[type="text"]:focus {
+    outline: none;
+    border: 1.5px solid #9abf92;
+}
+
+.option-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.option-group button {
+    font-family: "Kiwi Maru", sans-serif;
+    color: #777;
+    padding: 0.4rem 0.8rem;
+    margin: 5px 2px;
+    border: 1.5px solid #9abf92;
+    border-radius: 20px;
+    background: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.option-group button:hover,
+.option-group button.active {
+    background: #9abf92;
+    color: white;
+}
+
+.checkbox-group {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    appearance: none;
+    position: relative;
+    width: 17px;
+    height: 17px;
+    border: 1.7px solid #9abf92;
+    border-radius: 3px;
+    vertical-align: -5px;
+    cursor: pointer;
+}
+
+.checkbox-group input[type="checkbox"]:checked:before {
+    position: absolute;
+    top: 1px;
+    left: 4px;
+    transform: rotate(50deg);
+    width: 4px;
+    height: 8px;
+    border-right: 2px solid #9abf92;
+    border-bottom: 2px solid #9abf92;
+    content: '';
+}
+
+.checkbox-group label {
+    color: #555;
+    cursor: pointer;
+    width: 220px;
+}
+
+.checkbox-group label:hover {
+    color: #768765;
+    transition: 0.2s;
+}
+
+.filter-footer {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.clear-btn,
+.search-btn {
+    font-family: "Kiwi Maru", sans-serif;
+    flex: 1;
+    padding: 0.7rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.clear-btn {
+    background: #ffffff;
+    color: #768765;
+    border: 2px solid #9abf92;
+}
+
+.clear-btn:hover {
+    background-color: #f0f8e8;
+    transition: 0.2s;
+}
+
+.search-btn {
+    background: #9abf92;
+    color: #ffffff;
+}
+
+.search-btn:hover {
+    background-color: #84a87c;
+    transition: 0.2s;
+}
+
+.building-detail {
+    overflow: hidden;
+    max-height: 0;
+    padding: 0 1rem;
+    margin-top: 0;
+    transition:
+        max-height 0.35s linear,
+        padding 0.35s linear,
+        margin 0.35s linear,
+        opacity 0.25s linear;
+
+    opacity: 0;
+}
+
+/* 開いている状態のとき */
+.building-detail.open {
+    max-height: 1000px;
+    /* JavaScriptでscrollHeight上書きするのでOK */
+    padding: 1rem;
+    /* ← 開いたときに元に戻す */
+    margin-top: -0.5rem;
+    margin-bottom: 20px;
+    opacity: 1;
+}
+
+.floor {
+    font-weight: bold;
+    font-size: 1rem;
+    margin: 1rem 0 0.5rem;
+    padding: 5px;
+    border-bottom: 1.5px solid #d5e8c0;
+}
+
+.rooms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.room {
+    font-family: "Kiwi Maru", sans-serif;
+    letter-spacing: 0.03em;
+    padding: 0.5em 1em;
+    border-radius: 20px;
+    margin-top: 0.25rem;
+    cursor: pointer;
+}
+
+.room.red {
+    background: #d58b8b;
+    color: #fdfffa;
+    border: #d58b8b;
+    font-size: 0.83rem;
+}
+
+.room.red:hover {
+    background: #dca9ac;
+    border: #dca9ac;
+    transition: 0.2s;
+}
+
+.room.blue {
+    background: #70abcf;
+    color: #fdfffa;
+    border: #70abcf;
+    font-size: 0.83rem;
+}
+
+.room.blue:hover {
+    background: #9ac1d6;
+    border: #9ac1d6;
+    transition: 0.2s;
+}
+
+/* 教室情報モーダル全体 */
+.detail-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.detail-wrapper {
+    background: transparent;
+    max-width: 400px;
+    width: 85%;
+}
+
+.detail-content {
+    background: #fff;
+    border: 3px solid;
+    border-color: #768765;
+    border-radius: 0 0 12px 12px;
+    padding: 1.5rem;
+    /*width: 85%;*/
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* 教室情報ヘッダー */
+.detail-header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.detail-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.tabs {
+    display: flex;
+    /*max-width: 98.4%;*/
+    max-height: 60px;
+}
+
+.tabs button {
+    padding: 10px 0px;
+    width: 100%;
+    border-radius: 12px;
+    border: none;
+    font-family: "Kiwi Maru", sans-serif;
+    font-size: 18px;
+}
+
+.tab-1 {
+    padding: 0em;
+    border: 3px solid;
+    border-bottom: none;
+    border-color: #f0f8e8;
+    background: #f0f8e8;
+    border-radius: 12px 0 0 0;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+    width: 100%;
+    flex: 1;
+    font-size: .9em;
+    text-align: center;
+    cursor: pointer;
+}
+
+.tab-1 button {
+    cursor: pointer;
+    background: #f0f8e8;
+    color: #768765;
+}
+
+.tab-1:hover {
+    opacity: .8;
+    /*transition: 0.2s;*/
+}
+
+.tab-1.active {
+    background: #768765;
+    border-color: #768765;
+    color: #fff;
+    /*transition: 0s;*/
+}
+
+.tab-1.active button {
+    background: #768765;
+    color: #fff;
+}
+
+.tab-2 {
+    padding: 0em;
+    border: 3px solid;
+    border-color: #f0f8e8;
+    background: #f0f8e8;
+    border-radius: 0 12px 0 0;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+    width: 100%;
+    flex: 1;
+    font-size: .9em;
+    text-align: center;
+    cursor: pointer;
+}
+
+.tab-2 button {
+    cursor: pointer;
+    background: #f0f8e8;
+    color: #768765;
+}
+
+.tab-2:hover {
+    opacity: .8;
+    /*transition: 0.2s;*/
+}
+
+.tab-2.active {
+    background: #768765;
+    color: #fff;
+    border-color: #768765;
+    /*transition: 0s;*/
+}
+
+.tab-2.active button {
+    background: #768765;
+    color: #fff;
+}
+
+.tab-panel {
+    flex: 1;
+}
+
+.tab-panel-1 {
+    display: none;
+}
+
+.tab-panel-1.active {
+    display: block;
+}
+
+.tab-panel-2 {
+    display: none;
+}
+
+.tab-panel-2.active {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.photo {
+    text-align: center;
+    margin: 20px auto 30px;
+}
+
+.room-photo {
+    width: 250px;
+    height: auto;
+}
+
+.detail {
+    width: 80%;
+    margin: 0 auto 20px;
+}
+
+.class-count-btn {
+    display: flex;
+    justify-content: space-between;
+}
+
+.class-count-btn button {
+    width: 130px;
+    padding: 10px 15px;
+    margin: 10px 20px 5px;
+    color: #fff;
+    font-size: 18.5px;
+    border-radius: 10px;
+    font-family: "Kiwi Maru", sans-serif;
+    letter-spacing: 0.05em;
+    flex: 1;
+    cursor: pointer;
+}
+
+.class-container {
+    display: block;
+}
+
+#btnClass {
+    border: 2.5px solid #ba7276;
+    background: #d58b8b;
+}
+
+#btnClass:hover {
+    background: #ba7276;
+    transition: 0.2s;
+}
+
+.free-container {
+    display: block;
+}
+
+#btnFree {
+    border: 2.5px solid #6199bc;
+    background: #70abcf;
+}
+
+#btnFree:hover {
+    background: #6199bc;
+    transition: 0.2s;
+}
+
+.count-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin: 0 0px;
+}
+
+.logo_human {
+    width: 20px;
+    height: auto;
+    align-content: center;
+    margin-top: 3px;
+    margin-right: 5px;
+}
+
+.count {
+    font-size: 18px;
+    text-align: center;
+    letter-spacing: 0.05em;
+    color: #777;
+    margin-right: 15px;
+}
+
+.crowd-container {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: 5px;
+    text-align: center;
+    margin: 25px auto 0px;
+}
+
+.crowd-count-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 0px;
+}
+
+.crowd-count-btn button {
+    font-family: "Kiwi Maru", sans-serif;
+    color: #777;
+    line-height: 1.02rem;
+    padding: 10px 0px;
+    width: 75px;
+    border-radius: 7px;
+    margin: 0 0 5px;
+    cursor: pointer;
+}
+
+.crowd-count-btn .logo_human {
+    width: 18px;
+}
+
+.crowd-count-btn .count {
+    font-size: 17px;
+    margin-right: 10px;
+}
+
+#btnGaragara {
+    background: #dff2f4;
+    border-radius: 6px;
+    border: 2px solid #83bac2;
+}
+
+#btnGaragara:hover {
+    background: #cce8eb;
+    transition: 0.2s;
+}
+
+#btnSukuname {
+    background: #e7f9e0;
+    border: 2px solid #a1c59a;
+}
+
+#btnSukuname:hover {
+    background: #d2ecc8;
+    transition: 0.2s;
+}
+
+#btnHutsu {
+    background: #faf8d6;
+    border: 2px solid #cfcf57;
+}
+
+#btnHutsu:hover {
+    background: #f1eebf;
+    transition: 0.2s;
+}
+
+#btnKonzatsu {
+    background: #fae9ce;
+    border: 2px solid #e1bd50;
+}
+
+#btnKonzatsu:hover {
+    background: #f5ddb6;
+    transition: 0.2s;
+}
+
+.comment-list {
+    flex: 1;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    justify-content: flex-end;
+}
+
+.comment-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: #fff;
+    border-radius: 10px;
+    border: 1.5px solid #d5e2d2;
+    padding: 8px 12px;
+    font-family: "Kiwi Maru", sans-serif;
+}
+
+.comment-text {
+    font-size: 0.9rem;
+    color: #333;
+    flex: 1;
+    line-height: 1.2rem;
+}
+
+.comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: #999;
+}
+
+.like-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #9abf92;
+}
+
+.like-btn.liked {
+    color: #e88a8a;
+}
+
+.like-count {
+    font-size: 0.8rem;
+    margin-left: 2px;
+}
+
+.post-area {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: #fff;
+}
+
+.comment-area {
+    width: 280px;
+    height: 30px;
+    border-radius: 15px;
+    border: 2px solid #9abf92;
+    background: #fff;
+    padding: 10px;
+    line-height: 1.05rem;
+    font-family: "Kiwi Maru", sans-serif;
+    resize: none;
+}
+
+.comment-area:focus {
+    outline: none;
+    border: 2px solid #9abf92;
+}
+
+.post-btn {
+    align-content: center;
+}
+
+.post-image {
+    width: 25px;
+}
+
+.post-image:hover {
+    opacity: .8;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+.sub-page {
+    display: none;
+}
+
+.sub-page.active {
+    display: block;
+}
+
+.setting-header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.menu-btn {
+    display: block;
+    width: 200px;
+    margin: 20px auto;
+    padding: 10px 12px;
+    border: none;
+    background: #eee;
+    cursor: pointer;
+}
+
+.menu-btn:hover {
+    background: #ccc;
+}
+
+.back-btn {
+    display: block;
+    margin: 10px 0;
+    padding: 8px 12px;
+    border: none;
+    background: #eee;
+    cursor: pointer;
+}
+
+.room.filtered-out {
+    display: none !important; 
+}
+
+.room.filtered-out {
+    display: none !important;
+}
+
+.building-container {
+    margin-bottom: 15px;
+}
+
+.building-item {
+    width: 100%; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    text-align: left; 
+    
+}
+
+#postBtn114 {
+    background: none; 
+    border: none;
+    padding: 0; 
+    margin: 0;
+    cursor: pointer;
+}
+
+
+
+
+@media screen and (max-width:640px) {
+    .header-button {
+        gap: 7px;
+    }
+
+    .filter-btn {
+        padding: 0rem 0.2rem;
+    }
+
+    .logo_filter {
+        width: 32px;
+        height: auto;
+    }
+
+    .setting-btn {
+        padding: 0.35rem 0.55rem;
+    }
+
+    .logo_setting {
+        width: 22px;
+        height: auto;
+    }
+
+    .filter-content {
+        width: 80%;
+        max-width: 370px;
+        max-height: 85%;
+    }
+
+    .setting-content {
+        width: 80%;
+        max-width: 370px;
+        max-height: 85%;
+    }
+
+    .notice {
+        font-size: 0.9rem;
+        line-height: 1.3rem;
+    }
+
+    .br-sp {
+        display: block;
+    }
+
+    /*.tabs {
+        max-width: 93.4%;
+    }*/
+
+    .detail-content {
+        /*width: 80%;*/
+        max-width: 100%;
+        max-height: 85%;
+    }
+
+    .class-count-btn button {
+        /*width: 115px;*/
+        /*padding: 10px 15px;*/
+        /*margin: 10px 10px 5px;*/
+        /*font-size: 18px;*/
+        letter-spacing: 0.03em;
+    }
+
+    .crowd-count-btn button {
+        line-height: 1.02rem;
+        /*padding: 10px 0px;*/
+        /*width: 90%;*/
+        /*margin: 0 0 5px;*/
+    }
+
+    .post-area {
+        flex-wrap: nowrap;
+        /*align-items: center;*/
+        /*justify-content: center;*/
+        gap: 8px;
+        padding: 0 8px;
+    }
+
+    .text-area {
+        flex: 1;
+    }
+
+    .post-area .text-area textarea {
+        height: 50px;
+    }
+
+    .comment-area {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 0.85rem;
+    }
+
+    .post-btn {
+        flex-shrink: 0;
+    }
+
+    .post-image {
+        width: 22px;
+    }
+}

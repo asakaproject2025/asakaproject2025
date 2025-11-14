@@ -1,0 +1,121 @@
+[
+  {
+    "id": 114,
+    "name": "114教室",
+    "building": "1号館",
+    "floor": "1F",
+    "status": "空き",
+    "capacity": 510,
+    "tags": ["Wi-Fi", "コンセント", "プロジェクター", "黒板", "飲食○"],
+    "photo": "/images/114_kari.jpg"
+  },
+  {
+    "id": 117,
+    "name": "117教室",
+    "building": "1号館",
+    "floor": "1F",
+    "status": "授業中",
+    "capacity": 100,
+    "tags": ["Wi-Fi", "黒板"],
+    "photo": "/images/114_kari.jpg"
+  },
+  {
+    "id": 131,
+    "name": "131教室",
+    "building": "1号館",
+    "floor": "3F",
+    "status": "空き",
+    "capacity": 80,
+    "tags": ["ホワイトボード", "飲食不可"],
+    "photo": "131_kari.jpg"
+  },
+  {
+    "id": 211,
+    "name": "211教室",
+    "building": "2号館",
+    "floor": "1F",
+    "status": "空き",
+    "capacity": 80,
+    "tags": ["ホワイトボード", "飲食不可"],
+    "photo": "131_kari.jpg"
+  },
+  {"id": 301,
+    "name": "301教室",
+    "building": "3号館",
+    "floor": "1F",
+    "status": "使用中",
+    "capacity": 50,
+    "tags": ["PCルーム", "プロジェクター完備"],
+    "photo": "301_kari.jpg"
+  },
+  {
+    "id": 305,
+    "name": "305教室",
+    "building": "3号館",
+    "floor": "3F",
+    "status": "空き",
+    "capacity": 30,
+    "tags": ["ディスカッション", "飲食可"],
+    "photo": "305_kari.jpg"
+  },
+  {
+    "id": 402,
+    "name": "402教室",
+    "building": "4号館",
+    "floor": "2F",
+    "status": "空き",
+    "capacity": 120,
+    "tags": ["大講義室", "マイクあり"],
+    "photo": "402_kari.jpg"
+  },
+  {
+    "id": 510,
+    "name": "510教室",
+    "building": "5号館",
+    "floor": "1F",
+    "status": "使用中",
+    "capacity": 40,
+    "tags": ["ホワイトボード", "飲食不可"],
+    "photo": "510_kari.jpg"
+  },
+  {
+    "id": 703,
+    "name": "703教室",
+    "building": "7号館",
+    "floor": "3F",
+    "status": "空き",
+    "capacity": 65,
+    "tags": ["実験室", "PCルーム"],
+    "photo": "703_kari.jpg"
+  },
+  {
+    "id": 801,
+    "name": "801教室",
+    "building": "8号館",
+    "floor": "B1F",
+    "status": "使用中",
+    "capacity": 90,
+    "tags": ["大講義室", "飲食不可"],
+    "photo": "801_kari.jpg"
+  },
+  {
+    "id": 905,
+    "name": "905教室",
+    "building": "9号館",
+    "floor": "5F",
+    "status": "空き",
+    "capacity": 20,
+    "tags": ["ゼミ室", "ディスカッション"],
+    "photo": "905_kari.jpg"
+  },
+  {
+    "id": 10101,
+    "name": "10101教室",
+    "building": "10号館",
+    "floor": "1F",
+    "status": "空き",
+    "capacity": 75,
+    "tags": ["プロジェクター完備", "飲食可"],
+    "photo": "1008_kari.jpg"
+  }
+]

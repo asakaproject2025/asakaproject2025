@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>専修生田ルームナビ - ホーム</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="Asapro2025_appNo2.css">
+  <script type="module" src="Asapro2025_appNo2.js"></script>
+</head>
+
+<body>
+  <div id="homePage" class="page active">
+    <div class="header-scroll">
+      <header>
+        <div class="header-container">
+          <img src="/images/AsaproLogo-1.png" alt="あさぷろロゴ" class="logo">
+        </div>
+        <h1 id="header-period">日付時間</h1>
+        <div class="header-button">
+          <button class="filter-btn" id="openFilter">
+            <img src="/images/filter.png" alt="フィルター" class="logo_filter">
+          </button>
+          <button class="setting-btn" id="openSetting">
+            <img src="/images/setting.png" alt="設定" class="logo_setting">
+          </button>
+        </div>
+      </header>
+      <section class="legend">
+        <span class="legend-red">赤：授業あり</span>
+        <span class="legend-blue">青：授業なし</span>
+      </section>
+    </div>
+
+    <div class="notice">
+      <p>必ずしも最新の空き教室情報を<br class="br-sp">反映しているものとは限りません。</p>
+      <p>教室名をクリックすると教室の詳細を確認できます。</p>
+      <p>
+        専修大学生田キャンパスの地図は
+        <a href="asakaproject2023-main/index.html">こちら</a>からご覧ください。（仮）
+      </p>
+    </div>
+
+    <main id="building-list" class="building-list">
+    </main>
+
+    <div id="roomModal" class="detail-modal" style="display:none;">
+      <div class="detail-wrapper">
+
+        <div class="tabs">
+          <div class="tab-1">
+            <button data-target="panel-info">教室情報</button>
+          </div>
+          <div class="tab-2">
+            <button data-target="panel-comments">みんなの投稿</button>
+          </div>
+        </div>
+
+        <div class="detail-content">
+          <div class="detail-header">
+            <button class="close-btn2" id="closeModal">
+              <img src="/images/close2.png" alt="閉じる" class="logo_close2">
+            </button>
+            <h2 id="modal-room-name">教室名</h2>
+          </div>
+
+          <div class="detail-body">
+            <section id="panel-info" class="tab-panel tab-panel-1 active">
+              <div class="photo">
+                <img id="modal-room-photo" alt="教室写真" class="room-photo">
+              </div>
+              <div class="detail">
+                <p><span style="color:#9abf92;"><b>定員</b></span>：
+                  <span id="modal-capacity">-</span>人
+                </p>
+                <p><span style="color:#9abf92;"><b>設備・用途</b></span>：
+                  <span id="modal-tags">-</span>
+                </p>
+                <p><span style="color:#9abf92;"><b>状態</b></span>：
+                  <span id="modal-status">-</span>
+                </p>
+              </div>
+
+              <div class="class-count-btn">
+                <div class="class-container">
+                  <button id="btnClass">授業あり</button>
+                  <div class="count-item">
+                    <img src="/images/human.png" alt="human" class="logo_human">
+                    <div id="countClass" class="count">0</div>
+                  </div>
+                </div>
+                <div class="free-container">
+                  <button id="btnFree">授業なし</button>
+                  <div class="count-item">
+                    <img src="/images/human.png" alt="human" class="logo_human">
+                    <div id="countFree" class="count">0</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="crowd-container">
+                <div class="crowd-count-btn">
+                  <button id="btnGaragara">ガラガラ</button>
+                  <div class="count-item">
+                    <img src="/images/human.png" alt="human" class="logo_human">
+                    <div id="countGaragara" class="count">0</div>
+                  </div>
+                </div>
+                <div class="crowd-count-btn">
+                  <button id="btnSukuname">少なめ</button>
+                  <div class="count-item">
+                    <img src="/images/human.png" alt="human" class="logo_human">
+                    <div id="countSukuname" class="count">0</div>
+                  </div>
+                </div>
+                <div class="crowd-count-btn">
+                  <button id="btnHutsu">普通</button>
+                  <div class="count-item">
+                    <img src="/images/human.png" alt="human" class="logo_human">
+                    <div id="countHutsu" class="count">0</div>
+                  </div>
+                </div>
+                <div class="crowd-count-btn">
+                  <button id="btnKonzatsu">混雑</button>
+                  <div class="count-item">
+                    <img src="/images/human.png" alt="human" class="logo_human">
+                    <div id="countKonzatsu" class="count">0</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="panel-comments" class="tab-panel tab-panel-2">
+              <div class="comment-list" id="commentList114"></div>
+              <div class="post-area">
+                <div class="text-area">
+                  <textarea name="comments" class="comment-area" id="comments114" placeholder="コメントを入力…"></textarea>
+                </div>
+                <div class="post-btn">
+                  <button type="button" class="post-image-btn" id="postBtn114">
+                    <img src="/images/post.png" alt="投稿" class="post-image">
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="filterModal" class="filter-modal" style="display:none;">
+      <div class="filter-content">
+        <div class="filter-header">
+          <button class="close-btn2" id="closeFilter">
+            <img src="/images/close2.png" alt="閉じるボタン" class="logo_close2">
+          </button>
+          <h2>フィルタ</h2>
+        </div>
+        <div class="filter-body">
+          <label for="keyword">キーワード</label>
+          <input type="text" id="keyword" placeholder="キーワードを入力">
+
+          <p>曜日</p>
+          <div class="option-group" data-selection="single">
+            <button>月</button>
+            <button>火</button>
+            <button>水</button>
+            <button>木</button>
+            <button>金</button>
+            <button>土</button>
+          </div>
+
+          <p>時限</p>
+          <div class="option-group" data-selection="single">
+            <button>1</button>
+            <button>2</button>
+            <button>昼休み</button>
+            <button>3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>6</button>
+          </div>
+
+          <p>号館</p>
+          <div class="option-group" data-selection="multi">
+            <button>1</button>
+            <button>2</button>
+            <button>3</button>
+            <button>4</button>
+            <button>5</button>
+            <button>7</button>
+            <button>8</button>
+            <button>9</button>
+            <button>10</button>
+          </div>
+
+          <p>設備・用途</p>
+          <div class="option-group wide" data-selection="multi">
+            <button>Wi-Fi</button><button>コンセント</button><button>延長コード</button>
+            <button>ホワイトボード</button><button>黒板</button>
+            <button>パソコン</button><button>飲食⚪︎</button><button>自習向き</button>
+          </div>
+          <div class="checkbox-group">
+            <label><input type="checkbox"> 使用中の教室を非表示</label>
+          </div>
+        </div>
+        <div class="filter-footer">
+          <button class="clear-btn">全てクリア</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingPage" class="page">
+    <div id="menuPage" class="sub-page active">
+      <div class="setting-header">
+        <button id="backHome">← ホームに戻る</button>
+        <h2>設定メニュー</h2>
+      </div>
+      <button class="menu-btn" data-target="themePage">テーマカラー・色盲</button>
+      <button class="menu-btn" data-target="contactPage">お問い合わせ</button>
+      <button class="menu-btn" data-target="termsPage">利用規約</button>
+      <button class="menu-btn" id="logoutBtn">ログイン・ログアウト</button>
+      <p id="googleMsg"></p>
+      <p id="userEmail" style="margin-top:8px;"></p>
+      <p id="userUid"></p>
+    </div>
+  </div>
+
+</body>
+
+</html>
