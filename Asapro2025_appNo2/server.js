@@ -53,8 +53,13 @@ const _filename = fileURLToPath(import.meta.url);
 const _dirname = path.dirname(_filename);
 
 // 2. serviceAccountKey.json へのパスを構築
-const serviceAccountPath = path.join(_dirname, 'serviceAccountKey.json');
+// 本番環境 (Render) かどうかを判定
+const isProduction = process.env.NODE_ENV === 'production';
 
+// パスを切り替える
+const serviceAccountPath = isProduction
+    ? '/etc/secrets/serviceAccountKey.json'        // 本番: Renderの指定場所
+    : path.join(_dirname, 'serviceAccountKey.json'); // ローカル: プロジェクト内
 // 3. ファイルを「同期的に」読み込む (readFileSync)
 const serviceAccountRaw = fs.readFileSync(serviceAccountPath, 'utf8');
 
