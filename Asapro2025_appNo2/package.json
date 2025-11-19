@@ -1,17 +1,22 @@
 {
-  "name": "asapro2025_appno2",
-  "version": "1.0.0",
+  "name": "asapro2025",
+  "version": "2.1.0",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
+  },
+  "engines": {
+    "node": "20.x" 
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "firebase-admin": "^13.6.0",
     "pg": "^8.16.3"
   }
 }
