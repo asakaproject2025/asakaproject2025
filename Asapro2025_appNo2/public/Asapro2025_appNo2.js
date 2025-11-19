@@ -1,28 +1,32 @@
+// Asapro2025_appNo2.js
 // ==== Firebase imports ====
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
 import {
-  getAuth,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signOut
+        getAuth,
+        onAuthStateChanged,
+        GoogleAuthProvider,
+        signInWithPopup,
+        signOut
 } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js";
 
 // ==== あなたの設定 ====
 const firebaseConfig = {
-  apiKey: "AIzaSyDJhDQtSHKP1tPmGBYxcJaP0Q4Ic5B24o0",
-  authDomain: "loginfittest.firebaseapp.com",
-  projectId: "loginfittest",
-  storageBucket: "loginfittest.firebasestorage.app",
-  messagingSenderId: "349747039661",
-  appId: "1:349747039661:web:366ce894f181f3aec76524"
+        apiKey: "AIzaSyDcJnaN-uRFxemmowCo4L8JZF0I1xHimRw",
+        authDomain: "emptyroomproject.firebaseapp.com",
+        projectId: "emptyroomproject",
+        storageBucket: "emptyroomproject.firebasestorage.app",
+        messagingSenderId: "386806722360",
+        appId: "1:386806722360:web:1594f6ed5f6fbcac73dbcd",
+        measurementId: "G-6052RYFN8X"
 };
+
 
 // ==== 単一初期化 ====
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// 現在のログイン状態を保持
+// ==== グローバル変数 ====
+let currentUserId = null; // ★ DBのシリアルID (例: 1, 2, 3...) を保持する
 let isLoggedIn = false;
 
 // ==== 便利関数 ====
@@ -32,7 +36,7 @@ const showMsg = (el, text) => { if (el) el.textContent = text; };
 // ==== ページ判定（← path を先に定義！）====
 const path = location.pathname.replace(/\/+$/, "");
 const isIndex = /(?:^|\/)(index\.html)?$/.test(path);  // ルート/ もOK
-const isHome  = /(?:^|\/)home\.html$/.test(path);
+const isHome = /(?:^|\/)home\.html$/.test(path);
 
 // ===== index.html 用（ログインページ）=====
 const googleBtn = $('#googleBtn');
@@ -55,91 +59,123 @@ const logoutBtnOnIndex = $('#logoutBtnOnIndex');// 同上
 // }
 
 if (googleBtn) {
-    const provider = new GoogleAuthProvider();
-    googleBtn.addEventListener('click', async () => {
-      try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-  
-        const email = user.email;
-        const uid = user.uid;
-  
-        // 表示用
-        console.log('ログイン成功:', { email, uid });
-        showMsg(googleMsg, `Googleでログインしました。\nメール: ${email}\nUID: ${uid}`);
-  
-        // 保存して別ページで確認もできる
-        localStorage.setItem('userEmail', email);
-        localStorage.setItem('userUid', uid);
-  
-        const p = new URLSearchParams(location.search);
-        location.replace(p.get('next') || 'home.html');
-      } catch (err) {
-        console.error(err);
-        showMsg(googleMsg, `Googleログイン失敗: ${err.code || err.message}`);
-      }
-    });
-  }
-  
+        const provider = new GoogleAuthProvider();
+        googleBtn.addEventListener('click', async () => {
+                try {
+                        const result = await signInWithPopup(auth, provider);
+                        const user = result.user;
+
+                        const email = user.email;
+                        const uid = user.uid;
+
+                        // 表示用
+                        console.log('ログイン成功:', { email, uid });
+                        showMsg(googleMsg, `Googleでログインしました。\nメール: ${email}\nUID: ${uid}`);
+
+                        // ★★★ ここからDB連携を追加 ★★★
+                        // 2. サーバーAPIにユーザー情報を送信 (UPSERT)
+                        const idToken = await user.getIdToken();
+
+                        const response = await fetch('/api/auth/sync', {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${idToken}`},
+                        });
+
+                        const data = await response.json();
+
+                        if (!data.success) {
+                                throw new Error(data.message || 'DBとの同期に失敗しました');
+                        }
+
+                        // 3. APIから返された「DBのシリアルID」を保存
+                        currentUserId = data.user.id;
+                        localStorage.setItem('currentUserId', currentUserId); // ローカルストレージにも保存
+
+                        console.log(`DB 同期成功: シリアルID (currentUserId) = ${currentUserId}`);
+                        showMsg(googleMsg, `DB同期成功 (ID: ${currentUserId})。ホームに移動します...`);
+                        // ★★★ DB連携ここまで ★★★
+
+                        // 保存して別ページで確認もできる
+                        localStorage.setItem('userEmail', email);
+                        localStorage.setItem('userUid', uid);
+
+                        const p = new URLSearchParams(location.search);
+                        location.replace(p.get('next') || 'home.html');
+                } catch (err) {
+                        console.error(err);
+                        showMsg(googleMsg, `Googleログイン失敗: ${err.code || err.message}`);
+                }
+        });
+}
+
 
 if (continueBtn) {
-  continueBtn.addEventListener('click', () => location.replace('home.html'));
+        continueBtn.addEventListener('click', () => location.replace('home.html'));
 }
 
 if (logoutBtnOnIndex) {
-  logoutBtnOnIndex.addEventListener('click', async () => {
-    await signOut(auth);
-    location.reload();
-  });
+        logoutBtnOnIndex.addEventListener('click', async () => {
+                await signOut(auth);
+                location.reload();
+        });
 }
 
 // ===== home.html 用（任意でログアウトボタン対応）=====
 const emailOut = $('#userEmail');
-const uidOut   = $('#userUid');
+const uidOut = $('#userUid');
 
 const logoutBtn = $('#logoutBtn');
 if (logoutBtn) {
-  logoutBtn.addEventListener('click', async () => {
-    //await signOut(auth);
-    location.replace('index.html');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userUid');
-    location.replace('index.html');
-  });
+        logoutBtn.addEventListener('click', async () => {
+                await signOut(auth);
+                // ★ ログアウト時にDBのIDもクリア
+                localStorage.removeItem('currentUserId');
+                currentUserId = null;
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userUid');
+                location.replace('index.html');
+        });
 }
 
-// --- ここがポイント：自動遷移の条件を絞る
+// --- 自動遷移・状態監視 ---
 onAuthStateChanged(auth, (user) => {
 
-    if (user) {
-        console.log(`ログイン中: ${user.email}`);
-        isLoggedIn = true;
-        if(googleMsg){
-            googleMsg.textContent = `${user.displayName || user.email} でログイン中`;
-        }
-      } else {
-        console.log("未ログイン");
-        googleMsg.textContent = "ログアウト中";
-        isLoggedIn = false;
-    }
-   
-    //変更10/24
-    if (isHome) {
+        // ★ ページ読み込み時にDBのIDを復元
+        currentUserId = localStorage.getItem('currentUserId');
+
         if (user) {
-          const email = user.email || localStorage.getItem('userEmail') || '';
-          const uid   = user.uid   || localStorage.getItem('userUid')   || '';
-          if (emailOut) emailOut.textContent = `メールアドレス: ${email}`;
-          if (uidOut)   uidOut.textContent   = `UID: ${uid}`;
+                console.log(`ログイン中: ${user.email}`);
+                isLoggedIn = true;
+                if (googleMsg) {
+                        googleMsg.textContent = `${user.displayName || user.email} でログイン中`;
+                }
         } else {
-          // 未ログインなら index に戻す（next 付きで）
-          //location.replace('index.html?next=home.html');
-          //今回は非ログイン者でもみれるようにするので上のコードはコメントアウト
+                console.log("未ログイン");
+                googleMsg.textContent = "ログアウト中";
+                isLoggedIn = false;
+                // ★ 未ログインならDBのIDも消去
+                currentUserId = null;
+                localStorage.removeItem('currentUserId');
         }
-    }
-    //変更10/24ここまで
+
+        //変更10/24
+        if (isHome) {
+                if (user) {
+                        const email = user.email || localStorage.getItem('userEmail') || '';
+                        const uid = user.uid || localStorage.getItem('userUid') || '';
+                        if (emailOut) emailOut.textContent = `メールアドレス: ${email}`;
+                        if (uidOut) uidOut.textContent = `UID: ${uid}`;
+                } else {
+                        // 未ログインなら index に戻す（next 付きで）
+                        //location.replace('index.html?next=home.html');
+                        //今回は非ログイン者でもみれるようにするので上のコードはコメントアウト
+                }
+        }
+        //変更10/24ここまで
 
 
 });
+
 // 1. グローバル定数とヘルパー関数の定義 (DOMContentLoadedの外側)
 
 const PERIOD_TIMES = [
@@ -233,7 +269,6 @@ function setHeaderPeriod(text) {
         }
 }
 
-
 // ======= 現在時限表示 ヘルパー関数 (ヘッダー表示とデータ取得用IDを返す) =======
 
 function getPeriod() {
@@ -265,10 +300,40 @@ async function handleLikeClick(event) {
         if (!commentId) return;
 
         try {
-                const response = await fetch(`/api/comments/${commentId}/like`, {
+                const fetchOptions = {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" }
-                });
+                        headers: { "Content-Type": "application/json" } // まず空のヘッダーを用意
+                };
+
+                // 1. 現在のユーザーを取得
+                // ★ 1. まずユーザーをチェック
+                const user = auth.currentUser;
+                if (!user) {
+                        alert('いいねをするにはログインが必要です。');
+                        return; // ★ ユーザーがいなければここで中断
+                }
+
+                let idToken;
+                try {
+                        // ★ 2. IDトークン（身分証明書）を取得
+                        idToken = await user.getIdToken();
+                } catch (err) {
+                        console.error('トークン取得エラー:', err);
+                        alert('認証情報の取得に失敗しました。再ログインしてください。');
+                        return; // ★ トークンが取れなければここで中断
+                }
+
+                if (user) {
+                        // 2. ログイン中なら、IDトークンを取得してヘッダーに追加
+                        try {
+                                const idToken = await user.getIdToken();
+                                fetchOptions.headers['Authorization'] = `Bearer ${idToken}`;
+                        } catch (err) {
+                                console.error('トークン取得エラー:', err);
+                                // (トークンが取れなくても、ゲストとしてリクエストは続行)
+                        }
+                }
+                const response = await fetch(`/api/comments/${commentId}/like`, fetchOptions);
 
                 if (response.ok) {
                         // サーバーからの応答JSONには更新後のいいね数が含まれていると想定
@@ -279,12 +344,14 @@ async function handleLikeClick(event) {
 
                         if (likeCountElement) {
                                 // 返ってきた新しいいいね数に数字を更新
-                                likeCountElement.textContent = updatedData.likes;
+                                likeCountElement.textContent = updatedData.newLikeCount;
                         }
 
+                        // 3. サーバーの応答に基づいてUIを更新する
+                        updateLikeUI(button, updatedData.liked, updatedData.newLikeCount);
                         // (オプション) 一度いいねしたらボタンを無効化しても良い
-                        button.classList.add('liked');
-                        button.disabled = true;
+                        //button.classList.add('liked');
+                        //button.disabled = true;
 
                 } else {
                         alert("いいねの送信に失敗しました。");
@@ -294,8 +361,22 @@ async function handleLikeClick(event) {
                 console.error("いいね処理中にエラーが発生しました:", e);
                 alert("ネットワークエラーによりいいねできませんでした。");
         }
-}
+        // UIを更新する専用の関数
+        function updateLikeUI(button, isLiked, newCount) {
+                // ボタンの色を更新
+                if (isLiked) {
+                        button.classList.add('liked');
+                } else {
+                        button.classList.remove('liked');
+                }
 
+                // いいね数を更新
+                const countElement = document.getElementById(`like-count-${button.dataset.commentId}`);
+                if (countElement) {
+                        countElement.textContent = newCount;
+                }
+        }
+}
 
 // 2. DOMContentLoaded イベントリスナーの開始
 
@@ -419,7 +500,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 document.getElementById("modal-capacity").textContent = room.capacity ?? "不明";
                 document.getElementById("modal-status").textContent = room.status;
                 document.getElementById("modal-tags").textContent = (room.tags || []).join("・");
-                document.getElementById("modal-room-photo").src = room.photo || "noimage.png";
+                document.getElementById("modal-room-photo").src = room.image_url || "noimage.png";
 
                 modal.style.display = "flex";
                 modal.dataset.roomId = room.id; // 教室IDをデータ属性に保存
@@ -458,37 +539,81 @@ document.addEventListener("DOMContentLoaded", async function () {
         // 追加ヘルパー関数 (displayVotes/Comments)
 
         function displayVotes(votes) {
-                document.getElementById("countClass").textContent = votes.class ?? 0;
-                document.getElementById("countFree").textContent = votes.free ?? 0;
-                document.getElementById("countGaragara").textContent = votes.garagara ?? 0;
-                document.getElementById("countSukuname").textContent = votes.sukuname ?? 0;
-                document.getElementById("countHutsu").textContent = votes.hutsu ?? 0;
-                document.getElementById("countKonzatsu").textContent = votes.konzatsu ?? 0;
+                document.getElementById("countClass").textContent = votes.votes.class_count ?? 0;
+                document.getElementById("countFree").textContent = votes.votes.free_count ?? 0;
+                document.getElementById("countGaragara").textContent = votes.votes.garagara_count ?? 0;
+                document.getElementById("countSukuname").textContent = votes.votes.sukuname_count ?? 0;
+                document.getElementById("countHutsu").textContent = votes.votes.hutsu_count ?? 0;
+                document.getElementById("countKonzatsu").textContent = votes.votes.konzatsu_count ?? 0;
         }
 
         function displayComments(comments, commentListElement) {
                 commentListElement.innerHTML = "";
-                // 修正: roomComments ではなく、引数で渡されたコメントリストを使用
 
                 comments.forEach(comment => {
+                        // --- ここから安全なDOM構築 ---
+                        // 1. 各要素を .createElement で作成
                         const item = document.createElement("div");
                         item.className = "comment-item";
-                        // ★ 修正: 曜日を表示に追加 ★
-                        const timeMeta = new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        const dayLabel = comment.day ? `${comment.day}曜 ` : '';
 
-                        item.innerHTML = `
-                <div class="comment-content">
-                        <div class="comment-text">${comment.text}</div>
-                        <div class="comment-meta">
-                                <span class="day-period">${dayLabel}${comment.periodId}限</span>
-                                <span class="time">${timeMeta}</span>
-                                <button class="like-btn" data-comment-id="${comment.id}">♡</button>
-                                <span class="like-count" id="like-count-${comment.id}">${comment.likes || 0}</span>
-                        </div>
-                </div>
-            `;
+                        const contentDiv = document.createElement("div");
+                        contentDiv.className = "comment-content";
+
+                        const textDiv = document.createElement("div");
+                        textDiv.className = "comment-text";
+
+                        // ★ 2. .textContent を使って安全にテキストを挿入 ★
+                        // これにより、<script> タグはただの文字列として表示される
+                        textDiv.textContent = comment.content;
+
+                        const metaDiv = document.createElement("div");
+                        metaDiv.className = "comment-meta";
+
+                        // ... (timeMeta, dayLabel の計算は同じ) ...
+                        const timeMeta = new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const dayLabel = comment.time_slot_day ? `${comment.time_slot_day}曜 ` : '';
+
+                        // メタ情報も .textContent で挿入
+                        const dayPeriodSpan = document.createElement("span");
+                        dayPeriodSpan.className = "day-period";
+                        dayPeriodSpan.textContent = `${dayLabel}${comment.time_slot_period}限`;
+
+                        const timeSpan = document.createElement("span");
+                        timeSpan.className = "time";
+                        timeSpan.textContent = timeMeta;
+
+                        // ... (ボタンやいいねカウントの作成) ...
+                        const likeBtn = document.createElement("button");
+                        likeBtn.className = "like-btn";
+                        likeBtn.dataset.commentId = comment.id; // data-* 属性は安全
+                        likeBtn.textContent = "♡";
+
+                        const likeCountSpan = document.createElement("span");
+                        likeCountSpan.className = "like-count";
+                        likeCountSpan.id = `like-count-${comment.id}`;
+                        likeCountSpan.textContent = comment.likes || 0;
+                        // ログインユーザーのいいね済みを反映
+                        if (comment.is_liked_by_me) {
+                                likeBtn.classList.add('liked');
+                        } else {
+                                likeBtn.classList.remove('liked');
+                        }
+
+                        // 3. 作成した要素を組み立てる (appendChild)
+                        metaDiv.appendChild(dayPeriodSpan);
+                        metaDiv.appendChild(timeSpan);
+                        metaDiv.appendChild(likeBtn);
+                        metaDiv.appendChild(likeCountSpan);
+
+                        contentDiv.appendChild(textDiv);
+                        contentDiv.appendChild(metaDiv);
+
+                        item.appendChild(contentDiv);
+
                         commentListElement.prepend(item);
+                        // --- DOM構築ここまで ---
+
+                        // イベントリスナーの登録
                         commentListElement.querySelectorAll('.like-btn').forEach(button => {
                                 button.addEventListener('click', handleLikeClick);
                         });
@@ -509,11 +634,41 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                 // 1. 投票データの読み込み
                 try {
-                        const votesRes = await fetch("/api/votes");
+                        // 1. パラメータを準備
+                        const params = new URLSearchParams({
+                                roomId: Number(roomId),
+                                day: selectedDay,
+                                periodId: selectedPeriod
+                        });
+
+                        // 2. URLを組み立てる
+                        const url = `/api/votes?${params.toString()}`;
+
+                        const fetchOptions = {
+                                method: 'GET',
+                                headers: {} // まず空のヘッダーを用意
+                        };
+
+                        // 1. 現在のユーザーを取得
+                        const user = auth.currentUser;
+                        if (user) {
+                                // 2. ログイン中なら、IDトークンを取得してヘッダーに追加
+                                try {
+                                        const idToken = await user.getIdToken();
+                                        fetchOptions.headers['Authorization'] = `Bearer ${idToken}`;
+                                } catch (err) {
+                                        console.error('トークン取得エラー:', err);
+                                        // (トークンが取れなくても、ゲストとしてリクエストは続行)
+                                }
+                        }
+
+                        // 3. fetch
+                        const votesRes = await fetch(url, fetchOptions);
                         const allVotes = await votesRes.json();
+                        const roomPeriodVotes = allVotes;
 
                         // 該当教室 -> 該当曜日 -> 該当时限の投票データを抽出 (3階層アクセス)
-                        const roomPeriodVotes = (allVotes[String(roomId)]?.[selectedDay]?.[String(selectedPeriod)]) || {};
+                        //const roomPeriodVotes = (allVotes[String(roomId)]?.[selectedDay]?.[String(selectedPeriod)]) || {};
 
                         displayVotes(roomPeriodVotes);
                 } catch (e) {
@@ -523,24 +678,44 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                 // 2. コメントデータの読み込み
                 try {
-                        const commentsRes = await fetch("/api/comments");
-                        const allComments = await commentsRes.json();
+                        const fetchOptions = {
+                                method: 'GET',
+                                headers: {} // まず空のヘッダーを用意
+                        };
+
+                        // 1. 現在のユーザーを取得
+                        const user = auth.currentUser;
+                        if (user) {
+                                // 2. ログイン中なら、IDトークンを取得してヘッダーに追加
+                                try {
+                                        const idToken = await user.getIdToken();
+                                        fetchOptions.headers['Authorization'] = `Bearer ${idToken}`;
+                                } catch (err) {
+                                        console.error('トークン取得エラー:', err);
+                                        // (トークンが取れなくても、ゲストとしてリクエストは続行)
+                                }
+                        }
+                        const commentsRes = await fetch("/api/comments", fetchOptions);
+                        const data = await commentsRes.json();
+                        const allComments = data.comments;
                         const commentList = document.getElementById("commentList114");
 
                         // ★ 修正: 曜日によるフィルタリングを追加 ★
                         const roomComments = allComments.filter(c =>
-                                String(c.roomId) === String(roomId) &&
-                                String(c.day) === String(selectedDay) && // 曜日が一致
-                                String(c.periodId) === String(selectedPeriod) // 時限が一致
+                                String(c.classroom_id) === String(roomId) &&
+                                String(c.time_slot_day) === String(selectedDay) && // 曜日が一致
+                                String(c.time_slot_period) === String(selectedPeriod) // 時限が一致
                                 // isTimestampInPeriod(c.timestamp, selectedPeriod) は、データ保存時に
                                 // 既に曜日・時限が確定しているため、基本的に不要（サーバーでタイムスタンプをチェック済みと仮定）
                         );
+                        console.log(roomComments);
 
                         displayComments(roomComments, commentList);
                 } catch (e) {
                         console.error("コメントデータの読み込みに失敗しました:", e);
                         document.getElementById("commentList114").innerHTML = "<p>コメントの読み込みに失敗しました。</p>";
                 }
+
         }
 
 
@@ -556,7 +731,24 @@ document.addEventListener("DOMContentLoaded", async function () {
                 }
 
                 try {
-                        const response = await fetch("/api/votes", {
+                        // ★ 1. まずユーザーをチェック
+                        const user = auth.currentUser;
+                        if (!user) {
+                                alert('投票するにはログインが必要です。');
+                                return; // ★ ユーザーがいなければここで中断
+                        }
+
+                        let idToken;
+                        try {
+                                // ★ 2. IDトークン（身分証明書）を取得
+                                idToken = await user.getIdToken();
+                        } catch (err) {
+                                console.error('トークン取得エラー:', err);
+                                alert('認証情報の取得に失敗しました。再ログインしてください。');
+                                return; // ★ トークンが取れなければここで中断
+                        }
+
+                        const fetchOptions = {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
@@ -565,7 +757,21 @@ document.addEventListener("DOMContentLoaded", async function () {
                                         day: selectedDay,
                                         periodId: selectedPeriod // 時限ID文字列をPOST
                                 }),
-                        });
+                        };
+
+                        if (user) {
+                                // 2. ログイン中なら、IDトークンを取得してヘッダーに追加
+                                try {
+                                        const idToken = await user.getIdToken();
+                                        fetchOptions.headers['Authorization'] = `Bearer ${idToken}`;
+                                } catch (err) {
+                                        console.error('トークン取得エラー:', err);
+                                        // (トークンが取れなくても、ゲストとしてリクエストは続行)
+                                }
+                        }
+
+                        const response = await fetch("/api/votes", fetchOptions);
+
                         // サーバー応答の処理
                         if (response.ok) {
                                 // 投票後、最新の投票データを再読み込み
@@ -629,8 +835,25 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 selectedPeriod = getCurrentPeriodId().id;
                         }
 
+                        // ★ 1. まずユーザーをチェック
+                        const user = auth.currentUser;
+                        if (!user) {
+                                alert('コメントを投稿するにはログインが必要です。');
+                                return; // ★ ユーザーがいなければここで中断
+                        }
+
+                        let idToken;
                         try {
-                                const response = await fetch("/api/comments", {
+                                // ★ 2. IDトークン（身分証明書）を取得
+                                idToken = await user.getIdToken();
+                        } catch (err) {
+                                console.error('トークン取得エラー:', err);
+                                alert('認証情報の取得に失敗しました。再ログインしてください。');
+                                return; // ★ トークンが取れなければここで中断
+                        }
+
+                        try {
+                                const fetchOptions = {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json" },
                                         // ★ 修正: day と timestamp をペイロードに追加 ★
@@ -639,9 +862,23 @@ document.addEventListener("DOMContentLoaded", async function () {
                                                 text: text,
                                                 periodId: selectedPeriod,
                                                 day: selectedDay,
-                                                timestamp: new Date().toISOString()
+                                                //timestamp: new Date().toISOString()
                                         }),
-                                });
+                                };
+
+                                // 1. 現在のユーザーを取得
+                                const user = auth.currentUser;
+                                if (user) {
+                                        // 2. ログイン中なら、IDトークンを取得してヘッダーに追加
+                                        try {
+                                                const idToken = await user.getIdToken();
+                                                fetchOptions.headers['Authorization'] = `Bearer ${idToken}`;
+                                        } catch (err) {
+                                                console.error('トークン取得エラー:', err);
+                                                // (トークンが取れなくても、ゲストとしてリクエストは続行)
+                                        }
+                                }
+                                const response = await fetch("/api/comments", fetchOptions);
 
                                 if (response.ok) {
                                         loadRoomData(roomId);
