@@ -1,0 +1,582 @@
+body {
+	margin: 0px;
+	padding: 0px;
+	background-color: rgb(255, 255, 255);
+	overflow: hidden;
+	font-family: 'BIZ UDPGothic', sans-serif;
+	font-weight: bold;
+	/* 太字にする */
+	color: #484747;
+	/* 文字の色を #484747 に設定 */
+	position: relative;
+	height: 100svh;
+	overflow: hidden;
+}
+
+#toplogo {
+	object-fit: contain;
+	/* 画像のアスペクト比を保ちながら、指定した幅と高さに合わせる */
+}
+
+#headerArea {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 76px;
+	width: 100%;
+	background-color: white;
+	text-align: center;
+	box-shadow: 0px 2px 6px 1px rgb(171, 170, 170);
+	z-index: 2;
+	position: relative;
+}
+
+#lightArea {
+	display: flex;
+	align-items: center;
+	width: 18%;
+	justify-content: center;
+}
+
+.searchBox {
+	width: 600px;
+	height: 30px;
+	margin: 0 auto;
+	/* 中央寄せ */
+	border-radius: 10px;
+	/* ボックスの四つ角を丸くする */
+	border: none;
+	background-color: #eeeef0;
+	box-shadow: 2px 2px 6px 1px rgb(171, 170, 170);
+	position: relative;
+	font-size: 16px;
+}
+
+img.searchimge {
+	display: none;
+	width: 50px;
+	height: 50px;
+	padding-right: 5px;
+}
+
+#back-app{
+	width: 	10%;
+    padding: 6px;
+    margin-top: 4px;
+    border: none;
+    border-radius: 3px;
+    background-color: #c9e0be;
+    color: #ffffff;
+    font-family: "Kiwi Maru", sans-serif;
+    font-weight: bolder;
+    font-size: 1.0rem;
+    cursor: pointer;
+}
+
+
+/* アイコンがクリックされたらメニューを表示 */
+#drawer_input:checked~#filterList {
+	/*left: 65px;*/
+	right: 0%;
+}
+
+img.images1 {
+	width: 41px;
+	height: 41px;
+	padding-left: 14px;
+	padding-right: 14px;
+}
+
+.filter {
+	width: 31px;
+	height: 31px;
+	padding-left: 14px;
+	padding-right: 14px;
+}
+
+/* メニューのデザイン*/
+#filterList {
+	width: 25%;
+	height: 100%;
+	position: fixed;
+	top: 76px;
+	right: -35%;
+	z-index: 99;
+	background: rgba(217, 217, 217, 0.85);
+	transition: .5s;
+	margin-top: 0px;
+	overflow: scroll;
+}
+
+.listimages {
+	width: 60px;
+	height: 60px;
+	border-radius: 7px;
+	padding: 0;
+	margin-left: 5px;
+}
+
+.itemName:last-child {
+	margin: 0px;
+	margin-left: 20px;
+	margin-bottom: 150px;
+}
+
+@media(max-height: 840px) {
+	.listimages {
+		width: 50px;
+		height: 50px;
+		border-radius: 7px;
+		padding: 0;
+	}
+}
+
+@media (max-width: 767px) {
+	#headerArea {
+		display: flex;
+		align-items: center;
+		height: 76px;
+		width: 100%;
+		background-color: white;
+		text-align: center;
+		box-shadow: 0px 2px 6px 1px rgb(171, 170, 170);
+		z-index: 2;
+		position: relative;
+	}
+
+	.searchBox {
+		width: 600px;
+		height: 30px;
+		margin: 0px;
+		border-radius: 10px;
+		/* ボックスの四つ角を丸くする */
+		border: none;
+		background-color: #eeeef0;
+		box-shadow: 2px 2px 6px 1px rgb(171, 170, 170);
+	}
+
+	img.images1 {
+		width: 41px;
+		height: 41px;
+		padding-left: 14px;
+		padding-right: 14px;
+	}
+
+	.listimages {
+		width: 50px;
+		height: 50px;
+		border-radius: 7px;
+		padding: 0;
+	}
+
+	img.searchimge {
+		display: inline;
+	}
+
+	#lightArea {
+		margin-left: auto;
+		/* 右端に寄せる */
+		width: 10%;
+		justify-content: center;
+	}
+
+	.drawer_open {
+		margin: 0 0 0;
+		display: flex;
+		padding: 10px;
+		height: 40px;
+		width: 5%;
+		right: 100px;
+		justify-content: center;
+		align-items: center;
+		z-index: 100;
+		/* 重なり順を一番上にする */
+		cursor: pointer;
+		margin-right: 30px;
+	}
+
+	#filterList {
+		width: 118px;
+		height: 100%;
+		position: fixed;
+		top: 76px;
+		right: -30%;
+		z-index: 99;
+		background: rgba(217, 217, 217, 0.85);
+		transition: .5s;
+		margin-top: 0px;
+		overflow: scroll;
+	}
+
+	#drawer_input:checked~#filterList {
+		right: 0%;
+	}
+
+}
+
+@media(max-width: 530px) {
+	.searchBox {
+		width: 300px;
+		height: 30px;
+		margin: 0px;
+		border-radius: 10px;
+		/* ボックスの四つ角を丸くする */
+		border: none;
+		background-color: #eeeef0;
+		box-shadow: 2px 2px 6px 1px rgb(171, 170, 170);
+	}
+}
+
+@media(max-width: 419px) {
+	.searchBox {
+		width: 240px;
+		height: 30px;
+		margin: 0px;
+		border-radius: 10px;
+		/* ボックスの四つ角を丸くする */
+		border: none;
+		background-color: #eeeef0;
+		box-shadow: 2px 2px 6px 1px rgb(171, 170, 170);
+	}
+
+	#filterList {
+		width: 30%;
+		height: 100%;
+		position: fixed;
+		top: 76px;
+		right: -40%;
+		z-index: 99;
+		background: rgba(217, 217, 217, 0.85);
+		transition: .5s;
+		margin-top: 0px;
+		overflow: scroll;
+	}
+
+	.filter {
+		width: 31px;
+		height: 31px;
+		padding-left: 20px;
+	}
+
+	img.images1 {
+		width: 41px;
+		height: 41px;
+		padding-left: 14px;
+		padding-right: 24px;
+	}
+}
+
+.item {
+	margin: 10px;
+	padding: 10px;
+}
+
+img.images2 {
+	width: 50px;
+	height: 50px;
+}
+
+
+/*ハンバーガーアイコンに関するデータ*/
+.drawer_hidden {
+	display: none;
+	/* チェックボックスを非表示にする */
+}
+
+/* ハンバーガーアイコンの設置スペース */
+.drawer_open {
+	margin: 0 0 0;
+	display: flex;
+	padding: 10px;
+	height: 40px;
+	width: 5%;
+	right: 100px;
+	justify-content: center;
+	align-items: center;
+	z-index: 100;
+	/* 重なり順を一番上にする */
+	cursor: pointer;
+	margin-left: 5px;
+}
+
+/* ハンバーガーメニューのアイコン */
+.drawer_open span,
+.drawer_open span:before,
+.drawer_open span:after {
+	content: '';
+	display: block;
+	height: 4px;
+	width: 27px;
+	border-radius: 3px;
+	background: #333;
+	transition: 0.5s;
+	position: absolute;
+}
+
+/* 三本線の一番上の棒の位置調整 */
+.drawer_open span:before {
+	bottom: 8px;
+}
+
+/* 三本線の一番下の棒の位置調整 */
+.drawer_open span:after {
+	top: 8px;
+}
+
+.filterItem {
+	margin: 0px;
+	padding: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* メニュー黒ポチを消す */
+.nav_list {
+	list-style: none;
+}
+
+.itemName {
+	margin: 0px;
+	margin-left: 20px;
+}
+
+.search_block {
+	display: inline-block;
+	position: relative;
+}
+
+.search_block::before {
+	content: "";
+	width: 17px;
+	height: 17px;
+	background: url(./data/icon/search.png);
+	display: block;
+	position: absolute;
+	z-index: 5;
+	background-size: contain;
+	top: 7px;
+	left: 8px;
+}
+
+.search_block input {
+	top: 1px;
+	padding-left: 35px;
+}
+
+.ul_list {
+	margin: 0px;
+}
+
+.SLD_Name {
+	list-style-type: none;
+}
+
+.li_Name {
+	list-style-type: disc;
+	text-indent: -100px;
+	padding-left: 79px;
+}
+
+
+
+img {
+	vertical-align: top;
+}
+
+.icon img {
+	border-radius: 15%;
+}
+
+canvas {
+	display: block;
+	z-index: 0;
+}
+
+#mapArea {
+	position: relative;
+	z-index: 0;
+	overflow: hidden;
+	user-select: none;
+	touch-action: none;
+}
+
+#mapArea>div {
+	position: absolute;
+}
+
+.mapInfo {
+	white-space: nowrap;
+}
+
+.building.destinationName {
+	background-color: #EFF8FE;
+	padding: 4px;
+	border-radius: 4px;
+}
+
+.building::after {
+	content: "";
+	position: absolute;
+	top: calc(100% - 4px);
+	left: calc(50% - 10px);
+	background-color: #EFF8FE;
+	width: 20px;
+	height: 10px;
+	clip-path: polygon(0 0, 50% 100%, 100% 0);
+}
+
+.building .name {
+	line-height: 1.5;
+}
+
+.buildingIconList {
+	display: flex;
+}
+
+.mapInfo.icon img {
+	vertical-align: text-bottom;
+}
+
+#mapRotationBtn {
+	position: absolute;
+	z-index: 1;
+	bottom: 3rem;
+	left: 0px;
+}
+
+.hidden {
+	display: none;
+}
+
+#mapNav {
+	width: calc(100% - 32px);
+	position: absolute;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	background-color: #D9D6CE;
+	z-index: 1;
+	padding: 0px 16px;
+	font-weight: normal;
+	font-size: 1rem;
+	line-height: 2;
+	white-space: nowrap;
+	transition: all 0.5s;
+	top: 0px;
+	user-select: none;
+	box-shadow: 0px 2px 5px #757575;
+	color: #757575;
+}
+
+.mapName {
+	cursor: pointer;
+}
+
+.separator {
+	margin: 0px 8px;
+}
+
+.mapName.current {
+	font-size: 1.25rem;
+	font-weight: bold;
+	cursor: auto;
+	color: #3F3F3F;
+}
+
+.floor.destinationName {
+	background-color: transparent;
+	color: #FFFFFF;
+	font-size: 1.5rem;
+	text-shadow: 0px 2px 5px #757575;
+}
+
+.floor::after {
+	content: "F";
+}
+
+.destinationName .floor::after {
+	content: "Fへ";
+}
+
+.destinationName {
+	background-color: rgba(217, 217, 217, 0.85);
+	padding: 4px;
+}
+
+#footerArea {
+	position: fixed;
+	z-index: 1;
+	width: 100%;
+	bottom: 0px;
+	background-color: rgba(255, 255, 255, 0.80);
+	text-align: center;
+	font-size: 1rem;
+	padding: 1rem 0px;
+	cursor: pointer;
+	user-select: none;
+}
+
+#overlay {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  background-color: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+	backdrop-filter: blur(5px);
+}
+
+.modalWindow {
+	position: fixed;
+	z-index: 4;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	max-width: 20rem;
+	width: 50%;
+	background-color: #FFFFFF;
+	border-radius: 4px;
+	text-align: center;
+}
+
+.modalWindow ul {
+	display: flex;
+	flex-direction: column;
+	padding: 0px;
+	margin: 0px;
+}
+
+.modalWindow li {
+	padding-block: 1rem;
+	list-style: none;
+	border-bottom: 1px solid #484747;
+	box-sizing: border-box;
+}
+
+.modalWindow li:last-of-type {
+	border-bottom: none;
+}
+
+.modalWindow li:has(> a) {
+	padding-block: 0rem;
+}
+
+.modalWindow li > a {
+	display: block;
+	padding-block: 1rem;
+	text-decoration: none;
+	color: #484747;
+}
+
+#mapAreaWrapper {
+	position: relative;
+	z-index: 0;
+}
+
+
+
+.nav_item {
+	accent-color: #117132;
+}
