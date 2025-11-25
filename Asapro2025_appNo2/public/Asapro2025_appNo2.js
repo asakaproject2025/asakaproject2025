@@ -382,38 +382,144 @@ async function handleLikeClick(event) {
 
 document.addEventListener("DOMContentLoaded", async function () {
 
+        const themeButtons = document.querySelectorAll('.theme-btn');
+        const closeImages = document.querySelectorAll('.logo_close'); // すべての閉じるボタン画像を取得
         const modal = document.getElementById("roomModal");
 
+        // テーマごとの閉じるボタン画像パス
+        const closeBtnImages = {
+                red: 'images/close-red.png',
+                pink: 'images/close-pink.png',
+                orange: 'images/close-orange.png',
+                yellow: 'images/close-yellow.png',
+                lightgreen: 'images/close-lightgreen.png',
+                green: 'images/close-green.png',
+                skyblue: 'images/close-skyblue.png',
+                blue: 'images/close-blue.png',
+                purple: 'images/close-purple.png',
+                beige: 'images/close-beige.png',
+                brown: 'images/close-brown.png',
+                gray: 'images/close-gray.png',
+                black: 'images/close-black.png',
+                default: 'images/close.png'
+        };
 
-        // ======= フィルターモーダル開閉 =======
-        const openFilter = document.getElementById("openFilter");
-        const closeFilter = document.getElementById("closeFilter");
-        const filterModal = document.getElementById("filterModal");
+        // ✅ テーマ適用用関数
+        function applyTheme(theme) {
+                const body = document.body;
+
+                // 1. 保存用にテーマ名をLocalStorageに保存（これは維持）
+                localStorage.setItem('theme', theme);
+
+                // 2. 現在適用されている全てのテーマクラスを削除
+
+                // 現在のbodyのクラスリストを取得し、'theme-' で始まるものを全て削除
+                body.className = body.className.split(' ')
+                        .filter(c => !c.startsWith('theme-'))
+                        .join(' ');
+
+                // 3. 新しいテーマクラスを適用
+                body.classList.add(`theme-${theme}`); // ★重要: CSSクラスを適用する
+
+                // ... (以下の閉じるボタン画像とラジオボタンの処理は続きます) ...
+
+                closeImages.forEach(img => {
+
+                        img.src = closeBtnImages[theme] || closeBtnImages.default;
+
+                });
+
+                // ✅ ラジオボタンのチェック状態を更新
+
+                themeButtons.forEach(btn => {
+
+                        btn.checked = (btn.getAttribute('data-theme') === theme);
+
+                });
+
+                // すべての閉じるボタン画像をテーマに合わせて変更
+                closeImages.forEach(img => { /* ... */ });
+
+                // ラジオボタンのチェック状態を更新
+                themeButtons.forEach(btn => { /* ... */ });
+        }
+
+        // ✅ テーマボタンクリック処理
+        themeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                        const theme = button.getAttribute('data-theme');
+                        applyTheme(theme);
+                });
+        });
+
+        // ✅ ページ読み込み時に前回のテーマを復元
+        const savedTheme = localStorage.getItem('theme') || 'normal'; // 'default'ではなく'normal'を初期値に
+        applyTheme(savedTheme);
+
+        // ページ管理
+        const homePage = document.getElementById("homePage");
+        const mypagePage = document.getElementById("mypagePage");
+        const subPages = document.querySelectorAll(".sub-page");
+
+        // ---- ハンバーガーメニュー処理 ----
+        document.querySelectorAll(".hamb").forEach(hamb => {
+                const blackBg = hamb.parentElement.querySelector(".black-bg");
+
+                hamb.addEventListener("click", () => {
+                        hamb.classList.toggle("active");
+                        blackBg.classList.toggle("open");
+                });
+
+                // 背景クリック時：背景の外側のみ反応
+                document.addEventListener("click", (e) => {
+                        // クリック位置がblack-bgでもhambでもないなら閉じる
+                        if (!blackBg.contains(e.target) && !hamb.contains(e.target)) {
+                                hamb.classList.remove("active");
+                                blackBg.classList.remove("open");
+                        }
+                });
+        });
+
+        // ---- メニュー内の各ボタン ----
+        function showSubpage(id) {
+                // すべてのページを非表示にする
+                document.querySelectorAll(".page, .sub-page").forEach(p => {
+                        p.classList.remove("active");
+                });
+
+                // 指定されたページだけ表示
+                document.getElementById(id).classList.add("active");
+
+                // メニューを閉じる
+                document.querySelectorAll(".hamb").forEach(h => h.classList.remove("active"));
+                document.querySelectorAll(".black-bg").forEach(bg => bg.classList.remove("open"));
+        }
+
+
+        // 各メニュー項目
+        document.querySelectorAll(".menuTheme").forEach(btn => {
+                btn.addEventListener("click", () => showSubpage("themePage"));
+        });
+        document.querySelectorAll(".menuContact").forEach(btn => {
+                btn.addEventListener("click", () => showSubpage("contactPage"));
+        });
+        document.querySelectorAll(".menuTerms").forEach(btn => {
+                btn.addEventListener("click", () => showSubpage("termsPage"));
+        });
+
+        // ---- ホーム／マイページ移動 ----
+        document.querySelectorAll(".openMypage").forEach(btn => {
+                btn.addEventListener("click", () => showSubpage("mypagePage"));
+        });
+        document.querySelectorAll(".backHome").forEach(btn => {
+                btn.addEventListener("click", () => showSubpage("homePage"));
+        });
 
         if (openFilter && filterModal) { // 要素が取得できたか確認
                 openFilter.addEventListener("click", () => filterModal.style.display = "flex");
         }
         if (closeFilter && filterModal) {
                 closeFilter.addEventListener("click", () => filterModal.style.display = "none");
-        }
-
-        // ======= ページ切り替え (設定ボタン) =======
-        const homePage = document.getElementById("homePage");
-        const settingPage = document.getElementById("settingPage");
-        const openSetting = document.getElementById("openSetting");
-        const backHome = document.getElementById("backHome");
-
-        if (openSetting && homePage && settingPage) { // 要素が取得できたか確認
-                openSetting.addEventListener("click", () => {
-                        homePage.classList.remove("active");
-                        settingPage.classList.add("active");
-                });
-        }
-        if (backHome && homePage && settingPage) {
-                backHome.addEventListener("click", () => {
-                        settingPage.classList.remove("active");
-                        homePage.classList.add("active");
-                });
         }
 
         // ======= 教室リストの動的生成 =======
