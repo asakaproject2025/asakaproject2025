@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>専修生田ルームナビ - ホーム</title>
   <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="Asapro2025_appNo2.css">
   <script type="module" src="Asapro2025_appNo2.js"></script>
 </head>
@@ -14,32 +17,45 @@
   <div id="homePage" class="page active">
     <div class="header-scroll">
       <header>
-        <div class="header-container">
-          <img src="/images/AsaproLogo-1.png" alt="あさぷろロゴ" class="logo">
+        <div class="header-left">
+          <div class="hamb animation">
+            <span class="line animation"></span>
+            <span class="line animation"></span>
+            <span class="line animation"></span>
+          </div>
+          <div class="black-bg animation">
+            <nav class="overlay">
+              <ul>
+                <li><button class="menuTheme">テーマカラー設定</button></li>
+                <li><button class="menuContact">お問い合わせ</button></li>
+                <li><button class="menuTerms">利用規約</button></li>
+              </ul>
+            </nav>
+          </div>
         </div>
-        <h1 id="header-period">日付時間</h1>
-        <div class="header-button">
+        <div class="header-right">
+          <button class="openMypage">
+            <img src="images/mypage.png" alt="マイページ" class="logo_mypage">
+          </button>
           <button class="filter-btn" id="openFilter">
-            <img src="/images/filter.png" alt="フィルター" class="logo_filter">
+            <img src="images/filter.png" alt="フィルター" class="logo_filter">
           </button>
-          <button class="setting-btn" id="openSetting">
-            <img src="/images/setting.png" alt="設定" class="logo_setting">
-          </button>
-        </div>
       </header>
+      <h1 id="header-period">日付時間</h1>
       <section class="legend">
-        <span class="legend-red">赤：授業あり</span>
-        <span class="legend-blue">青：授業なし</span>
+        <span class="legend-red">赤：使用中</span>
+        <span class="legend-blue">青：空き</span>
       </section>
     </div>
 
     <div class="notice">
-      <p>必ずしも最新の空き教室情報を<br class="br-sp">反映しているものとは限りません。</p>
-      <p>教室名をクリックすると教室の詳細を確認できます。</p>
+      <p>専修生田ルームナビは、教室の空き状況を投票やコメントによって学生同士で共有し、みんなで育てていく情報サイトです。</p>
+      <p>教室名をクリックすると、教室の詳細情報を確認でき、投票やコメントを投稿できます。</p>
       <p>
         専修大学生田キャンパスの地図は
-        <a href="asakaproject2023-main/index.html">こちら</a>からご覧ください。（仮）
+        <a href="asakaproject2023-main/index.html">こちら</a>からご覧ください。
       </p>
+      <p>このWebサイトをブックマークに追加すると、より便利にご利用いただけます。ぜひお試しください。</p>
     </div>
 
     <main id="building-list" class="building-list">
@@ -49,24 +65,24 @@
       <div class="detail-wrapper">
 
         <div class="tabs">
-          <div class="tab-1">
-            <button data-target="panel-info">教室情報</button>
+          <div id="tab114-1" class="tab-1">
+            <button data-target="panel114-1">教室情報</button>
           </div>
-          <div class="tab-2">
-            <button data-target="panel-comments">みんなの投稿</button>
+          <div id="tab114-2" class="tab-2">
+            <button data-target="panel114-2">みんなの投稿</button>
           </div>
         </div>
 
         <div class="detail-content">
           <div class="detail-header">
-            <button class="close-btn2" id="closeModal">
-              <img src="/images/close2.png" alt="閉じる" class="logo_close2">
+            <button class="close-btn" id="closeModal">
+              <img src="/images/close.png" alt="閉じる" class="logo_close">
             </button>
             <h2 id="modal-room-name">教室名</h2>
           </div>
 
           <div class="detail-body">
-            <section id="panel-info" class="tab-panel tab-panel-1 active">
+            <section id="panel114-1" class="tab-panel tab-panel-1 active">
               <div class="photo">
                 <img id="modal-room-photo" alt="教室写真" class="room-photo">
               </div>
@@ -101,28 +117,28 @@
 
               <div class="crowd-container">
                 <div class="crowd-count-btn">
-                  <button id="btnGaragara">ガラガラ</button>
+                  <button id="btnGaragara">ガラガラ（10%以下）</button>
                   <div class="count-item">
                     <img src="/images/human.png" alt="human" class="logo_human">
                     <div id="countGaragara" class="count">0</div>
                   </div>
                 </div>
                 <div class="crowd-count-btn">
-                  <button id="btnSukuname">少なめ</button>
+                  <button id="btnSukuname">少なめ（10〜30%）</button>
                   <div class="count-item">
                     <img src="/images/human.png" alt="human" class="logo_human">
                     <div id="countSukuname" class="count">0</div>
                   </div>
                 </div>
                 <div class="crowd-count-btn">
-                  <button id="btnHutsu">普通</button>
+                  <button id="btnHutsu">普通（30〜50%）</button>
                   <div class="count-item">
                     <img src="/images/human.png" alt="human" class="logo_human">
                     <div id="countHutsu" class="count">0</div>
                   </div>
                 </div>
                 <div class="crowd-count-btn">
-                  <button id="btnKonzatsu">混雑</button>
+                  <button id="btnKonzatsu">混雑（50%以上）</button>
                   <div class="count-item">
                     <img src="/images/human.png" alt="human" class="logo_human">
                     <div id="countKonzatsu" class="count">0</div>
@@ -131,7 +147,7 @@
               </div>
             </section>
 
-            <section id="panel-comments" class="tab-panel tab-panel-2">
+            <section id="panel114-2" class="tab-panel tab-panel-2">
               <div class="comment-list" id="commentList114"></div>
               <div class="post-area">
                 <div class="text-area">
@@ -153,14 +169,14 @@
     <div id="filterModal" class="filter-modal" style="display:none;">
       <div class="filter-content">
         <div class="filter-header">
-          <button class="close-btn2" id="closeFilter">
-            <img src="/images/close2.png" alt="閉じるボタン" class="logo_close2">
+          <button class="close-btn" id="closeFilter">
+            <img src="images/close.png" alt="閉じるボタン" class="logo_close">
           </button>
           <h2>フィルタ</h2>
         </div>
         <div class="filter-body">
-          <label for="keyword">キーワード</label>
-          <input type="text" id="keyword" placeholder="キーワードを入力">
+          <label for="keyword">教室名検索</label>
+          <input type="text" id="keyword" placeholder="教室名を入力">
 
           <p>曜日</p>
           <div class="option-group" data-selection="single">
@@ -212,6 +228,265 @@
       </div>
     </div>
   </div>
+
+  <div id="mypagePage" class="sub-page">
+    <div class="header-scroll">
+      <header>
+        <div class="header-button">
+          <div class="header-left">
+            <div class="hamb animation">
+              <span class="line animation"></span>
+              <span class="line animation"></span>
+              <span class="line animation"></span>
+            </div>
+            <div class="black-bg animation">
+              <nav class="overlay">
+                <ul>
+                  <li><button class="menuTheme">テーマカラー設定</button></li>
+                  <li><button class="menuContact">お問い合わせ</button></li>
+                  <li><button class="menuTerms">利用規約</button></li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+          <button class="backHome">
+            <img src="images/home.png" alt="ホームに戻る" class="logo_home">
+          </button>
+        </div>
+      </header>
+      <h2>マイページ</h2>
+    </div>
+    <div class="profile-card">
+      <div class="profile-card-content">
+        <div class="username-container">
+          <p>○</p>
+          <p>　ユーザ名</p>
+        </div>
+        <p>授業ありなしボタンを押した数（仮）</p>
+        <p>混雑度ボタンを押した数（仮）</p>
+        <p>コメントを投稿した数（仮）</p>
+      </div>
+    </div>
+    <div class="login-logout-container">
+      <button class="menu-btn" id="logoutBtn">ログアウト</button>
+      <p id="googleMsg"></p>
+      <p id="userEmail" style="margin-top:8px;"></p>
+      <p id="userUid"></p>
+    </div>
+  </div>
+
+  <div id="themePage" class="sub-page">
+    <div class="header-scroll">
+      <header>
+        <div class="header-left">
+          <div class="hamb animation">
+            <span class="line animation"></span>
+            <span class="line animation"></span>
+            <span class="line animation"></span>
+          </div>
+          <div class="black-bg animation">
+            <nav class="overlay">
+              <ul>
+                <li><button class="menuTheme">テーマカラー設定</button></li>
+                <li><button class="menuContact">お問い合わせ</button></li>
+                <li><button class="menuTerms">利用規約</button></li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+        <div class="header-right">
+          <button class="openMypage">
+            <img src="images/mypage.png" alt="マイページ" class="logo_mypage">
+          </button>
+          <button class="backHome">
+            <img src="images/home.png" alt="ホームに戻る" class="logo_home">
+          </button>
+        </div>
+      </header>
+      <h2>テーマカラー設定</h2>
+    </div>
+    <p>下からテーマカラーを選んでください。</p>
+    <div id="themeSelector">
+      <div class="theme-btn-container">
+        <label><input data-theme="normal" type="radio" name="radio" class="theme-btn" id="normal-btn"
+            value="ノーマル"></label>
+        <p>ノーマル</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="colorblind" type="radio" name="radio" class="theme-btn" id="colorblind-btn"
+            value="色覚多様性"></label>
+        <p>色覚多様性</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="red" type="radio" name="radio" class="theme-btn" id="red-btn" value="赤"></label>
+        <p>赤</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="pink" type="radio" name="radio" class="theme-btn" id="pink-btn" value="ピンク"></label>
+        <p>ピンク</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="orange" type="radio" name="radio" class="theme-btn" id="orange-btn"
+            value="オレンジ"></label>
+        <p>オレンジ</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="yellow" type="radio" name="radio" class="theme-btn" id="yellow-btn" value="黄"></label>
+        <p>黄</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="lightgreen" type="radio" name="radio" class="theme-btn" id="lightgreen-btn"
+            value="黄緑"></label>
+        <p>黄緑</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="green" type="radio" name="radio" class="theme-btn" id="green-btn" value="緑"></label>
+        <p>緑</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="skyblue" type="radio" name="radio" class="theme-btn" id="skyblue-btn"
+            value="水色"></label>
+        <p>水色</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="blue" type="radio" name="radio" class="theme-btn" id="blue-btn" value="青"></label>
+        <p>青</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="purple" type="radio" name="radio" class="theme-btn" id="purple-btn" value="紫"></label>
+        <p>紫</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="beige" type="radio" name="radio" class="theme-btn" id="beige-btn"
+            value="ベージュ"></label>
+        <p>ベージュ</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="brown" type="radio" name="radio" class="theme-btn" id="brown-btn" value="茶"></label>
+        <p>茶</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="gray" type="radio" name="radio" class="theme-btn" id="gray-btn" value="グレー"></label>
+        <p>グレー</p>
+      </div>
+      <div class="theme-btn-container">
+        <label><input data-theme="black" type="radio" name="radio" class="theme-btn" id="black-btn" value="黒"></label>
+        <p>黒</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="contactPage" class="sub-page">
+    <div class="header-scroll">
+      <header>
+        <div class="header-left">
+          <div class="hamb animation">
+            <span class="line animation"></span>
+            <span class="line animation"></span>
+            <span class="line animation"></span>
+          </div>
+          <div class="black-bg animation">
+            <nav class="overlay">
+              <ul>
+                <li><button class="menuTheme">テーマカラー設定</button></li>
+                <li><button class="menuContact">お問い合わせ</button></li>
+                <li><button class="menuTerms">利用規約</button></li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+        <div class="header-right">
+          <button class="openMypage">
+            <img src="images/mypage.png" alt="マイページ" class="logo_mypage">
+          </button>
+          <button class="backHome">
+            <img src="images/home.png" alt="ホームに戻る" class="logo_home">
+          </button>
+        </div>
+      </header>
+      <h2>お問い合わせ</h2>
+    </div>
+    <div class="contact-container">
+      <p>こちらのフォームからお問い合わせください。</p>
+      <a href="https://forms.gle/NNCWPQCVkv5T3aNHA" class="contact-form">▶︎ お問い合わせフォーム</a>
+    </div>
+  </div>
+
+  <div id="termsPage" class="sub-page">
+    <div class="header-scroll">
+      <header>
+        <div class="header-left">
+          <div class="hamb animation">
+            <span class="line animation"></span>
+            <span class="line animation"></span>
+            <span class="line animation"></span>
+          </div>
+          <div class="black-bg animation">
+            <nav class="overlay">
+              <ul>
+                <li><button class="menuTheme">テーマカラー設定</button></li>
+                <li><button class="menuContact">お問い合わせ</button></li>
+                <li><button class="menuTerms">利用規約</button></li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+        <div class="header-right">
+          <button class="openMypage">
+            <img src="images/mypage.png" alt="マイページ" class="logo_mypage">
+          </button>
+          <button class="backHome">
+            <img src="images/home.png" alt="ホームに戻る" class="logo_home">
+          </button>
+        </div>
+      </header>
+      <h2>利用規約</h2>
+    </div>
+    <div class="terms-text">
+      <p>この利用規約（以下「本規約」といいます）は、専修大学の学生によって運営されるWebアプリ「専修生田ルームナビ」（以下「本アプリ」といいます）の利用条件を定めるものです。
+        本アプリを利用するすべてのユーザ（以下「ユーザ」といいます）は、本規約に同意したうえで本アプリを利用するものとします。</p>
+      <p><span style="font-size: 25px;">第1条（目的）</span><br>
+        　本アプリは、大学内の教室の空き状況や混雑度を、学生同士が共有・確認できることを目的としています。
+        　ユーザ同士が協力して、快適に教室を利用できるようにすることを目指しています。</p>
+      <p><span style="font-size: 25px;">第2条（利用条件）</span><br>
+        　1. 本アプリは、ログインの有無にかかわらず利用できますが、以下の機能はGoogleアカウントによるログインが必要です。<br>
+        　・授業あり／なしの投票<br>
+        　・混雑度の投票<br>
+        　・コメントの投稿および「いいね」機能<br>
+        　2. ログインせずに利用する場合、閲覧のみが可能です。<br>
+        　3. ユーザはマイページから自由にログイン・ログアウトを行うことができます。</p>
+      <p><span style="font-size: 25px;">第3条（禁止事項）</span><br>
+        　ユーザは、本アプリの利用にあたり、以下の行為をしてはなりません。<br>
+        　1. 虚偽の情報を投稿する行為<br>
+        　2. 他人や特定の団体を誹謗・中傷する行為<br>
+        　3. 公序良俗に反する内容を投稿する行為<br>
+        　4. 他のユーザの利用を妨害する行為<br>
+        　5. 不正アクセスやシステムの改ざんなど、本アプリの運営を妨げる行為<br>
+        　6. 運営者が不適切と判断するその他の行為</p>
+      <p><span style="font-size: 25px;">第4条（投稿内容の扱い）</span><br>
+        　1. ユーザが本アプリに投稿したコメントや投票内容は、他のユーザから閲覧される可能性があります。<br>
+        　2. 投稿されたコメントは、投稿後に編集・削除することはできません。<br>
+        　3. 運営者は、以下の場合に投稿を削除または非表示にすることがあります。<br>
+        　・不適切な内容が含まれていると判断した場合<br>
+        　・他のユーザからの報告があった場合<br>
+        　・その他、運営上必要と判断した場合</p>
+      <p><span style="font-size: 25px;">第5条（免責事項）</span><br>
+        　1. 本アプリに掲載される情報（授業の有無や混雑度など）は、ユーザの投票や投稿に基づくものであり、正確性・最新性を保証するものではありません。<br>
+        　2. 本アプリの利用によって生じたトラブル・損害について、運営者は一切の責任を負いません。<br>
+        　3. 本アプリは、予告なく機能の追加・変更・停止を行うことがあります。</p>
+      <p><span style="font-size: 25px;">第6条（プライバシー）</span><br>
+        　1. ログイン時に取得するGoogleアカウント情報は、本人確認および投稿機能の利用のためのみに使用します。<br>
+        　2. ユーザ情報は、法令に基づく場合を除き、第三者に提供することはありません。<br>
+        　3. お問い合わせフォーム（Googleフォーム）に入力された情報は、アプリ運営に関する対応のみに利用します。</p>
+      <p><span style="font-size: 25px;">第7条（利用規約の変更）</span><br>
+        　運営者は、必要に応じて本規約を変更することができます。
+        　変更後の規約は、本アプリ上に掲載した時点から効力を生じるものとします。</p>
+      <p><span style="font-size: 25px;">第8条（準拠法）</span><br>
+        　本規約は、日本法に基づいて解釈されます。</p><br>
+      <p><span style="font-size: 22px;">以上</span></p>
+    </div>
+  </div>
+
 
   <div id="settingPage" class="page">
     <div id="menuPage" class="sub-page active">
