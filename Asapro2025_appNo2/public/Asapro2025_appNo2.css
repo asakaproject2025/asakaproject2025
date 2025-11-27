@@ -84,8 +84,8 @@ body.modal-open {
     font-family: "Kiwi Maru", sans-serif;
 }
 
-#login-btn {
-    width: 80%;
+.login-btn {
+    width: 90%;
     padding: 12px;
     margin-top: 10px;
     border: none;
@@ -99,7 +99,7 @@ body.modal-open {
     transition: 0.4s;
 }
 
-#login-btn:hover {
+.login-btn:hover {
     background-color: #c2dcb2;
 }
 
