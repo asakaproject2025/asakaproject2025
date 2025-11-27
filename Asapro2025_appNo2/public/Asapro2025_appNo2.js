@@ -544,7 +544,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                         // F2. 階層の見出し（例: <h4>1F</h4>）
                                         const floorHeader = document.createElement("h4");
                                         floorHeader.className = "floor";
-                                        floorHeader.textContent = floor;
+                                        floorHeader.textContent = floor + "F";
                                         floorContainer.appendChild(floorHeader);
 
                                         // F3. 教室ボタンを配置するコンテナ
