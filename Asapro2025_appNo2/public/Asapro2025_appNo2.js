@@ -43,21 +43,6 @@ const googleBtn = $('#googleBtn');
 const googleMsg = $('#googleMsg');
 const continueBtn = $('#continueBtn');          // 置いていなければ null のままでOK
 const logoutBtnOnIndex = $('#logoutBtnOnIndex');// 同上
-
-// if (googleBtn) {
-//   const provider = new GoogleAuthProvider();
-//   googleBtn.addEventListener('click', async () => {
-//     try {
-//       await signInWithPopup(auth, provider);
-//       showMsg(googleMsg, 'Googleでログインしました。');      
-//       const p = new URLSearchParams(location.search);
-//       location.replace(p.get('next') || 'home.html');
-//     } catch (err) {
-//       showMsg(googleMsg, `Googleログイン失敗: ${err.code || err.message}`);
-//     }
-//   });
-// }
-
 if (googleBtn) {
         const provider = new GoogleAuthProvider();
         googleBtn.addEventListener('click', async () => {
@@ -153,12 +138,10 @@ onAuthStateChanged(auth, (user) => {
                 console.log("未ログイン");
                 googleMsg.textContent = "ログアウト中";
                 isLoggedIn = false;
-                // ★ 未ログインならDBのIDも消去
                 currentUserId = null;
                 localStorage.removeItem('currentUserId');
         }
 
-        //変更10/24
         if (isHome) {
                 if (user) {
                         const email = user.email || localStorage.getItem('userEmail') || '';
@@ -166,13 +149,8 @@ onAuthStateChanged(auth, (user) => {
                         if (emailOut) emailOut.textContent = `メールアドレス: ${email}`;
                         if (uidOut) uidOut.textContent = `UID: ${uid}`;
                 } else {
-                        // 未ログインなら index に戻す（next 付きで）
-                        //location.replace('index.html?next=home.html');
-                        //今回は非ログイン者でもみれるようにするので上のコードはコメントアウト
                 }
         }
-        //変更10/24ここまで
-
 
 });
 
@@ -189,11 +167,6 @@ const PERIOD_TIMES = [
 ];
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"]; // グローバル定数化
 
-/**
- * 現在の時限ID、または次に開始する時限IDを返す。
- * 全ての授業が終わっている場合は最後の時限IDを返す。
- * @returns {{id: string, isCurrent: boolean}} 時限IDと現在時限かどうかの情報
- */
 function getCurrentPeriodId() {
         const now = new Date();
         // 協定世界時（UTC）との時差を考慮せず、現地時間で計算
@@ -248,13 +221,9 @@ function isTimestampInPeriod(timestamp, periodId) {
 
         const period = PERIOD_TIMES.find(p => String(p.id) === String(periodId));
         if (!period) return true; // 定義されていない時限IDは無視
-
+        
         const commentTime = new Date(timestamp);
         const dateStr = commentTime.toISOString().split('T')[0];
-
-        // Local Time (JST)として比較
-        // ★ タイムゾーンの問題を避けるため、日時と時刻を結合するロジックは注意が必要
-        // タイムスタンプがISO形式なら、サーバーで生成したタイムスタンプがJSTなら問題ない
         const startTime = new Date(`${dateStr}T${period.start}`);
         const endTime = new Date(`${dateStr}T${period.end}`);
 
@@ -273,16 +242,10 @@ function setHeaderPeriod(text) {
 
 function getPeriod() {
         const now = new Date();
-        // 修正: グローバル定数 WEEKDAYS を使用
         const dayLabel = WEEKDAYS[now.getDay()];
-
         const periodInfo = getCurrentPeriodId();
         const periodId = periodInfo.id;
-
-        // 修正: 時間外でも特別な表示はしない。単に時限のみを表示する。
         const periodText = (periodId === '昼休み') ? "昼休み" : `${periodId}限`;
-
-        // 修正: 曜日名も省略しない（「水曜」のようにする）
         return {
                 headerText: `${dayLabel}曜 ${periodText}`, // ヘッダーに表示するテキスト
                 day: dayLabel, // フィルタ/データ処理に使用する今日の曜日
@@ -515,7 +478,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 btn.addEventListener("click", () => showSubpage("homePage"));
         });
 
-        if (openFilter && filterModal) { // 要素が取得できたか確認
+        if (openFilter && filterModal) { 
                 openFilter.addEventListener("click", () => filterModal.style.display = "flex");
         }
         if (closeFilter && filterModal) {
@@ -561,9 +524,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 detailDiv.id = `building-${building}`;
                                 buildingContainer.appendChild(detailDiv);
 
-                                // --- ★ 変更点: 階層ごとに再グループ化するロジック ★ ---
-
-                                // 4. 号館内の教室を階層ごとに再グループ化 (room.floor を使用)
+                                // 4. 号館内の教室を階層ごとに再グループ化 
                                 const groupedByFloor = rooms.reduce((acc, room) => {
                                         const floor = room.floor || "不明な階層";
                                         if (!acc[floor]) acc[floor] = [];
@@ -614,8 +575,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                                         });
                                 });
 
-                                // --- ★ 変更点ここまで ★ ---
-
                                 // D. アコーディオンクリック処理
                                 buildingBtn.addEventListener("click", () => {
                                         const arrow = buildingBtn.querySelector(".arrow");
@@ -632,7 +591,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                                         if (!isOpen) {
                                                 // 現在のアコーディオンを開く
                                                 detailDiv.classList.add("open");
-                                                // スクロール高さを計算して設定
                                                 detailDiv.style.maxHeight = detailDiv.scrollHeight + "px";
                                                 detailDiv.style.opacity = 1;
                                                 arrow.textContent = "▲";
@@ -822,9 +780,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                         const allVotes = await votesRes.json();
                         const roomPeriodVotes = allVotes;
 
-                        // 該当教室 -> 該当曜日 -> 該当时限の投票データを抽出 (3階層アクセス)
-                        //const roomPeriodVotes = (allVotes[String(roomId)]?.[selectedDay]?.[String(selectedPeriod)]) || {};
-
                         displayVotes(roomPeriodVotes);
                 } catch (e) {
                         console.error("投票データの読み込みに失敗しました:", e);
@@ -1011,7 +966,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 const fetchOptions = {
                                         method: "POST",
                                         headers: { "Content-Type": "application/json" },
-                                        // ★ 修正: day と timestamp をペイロードに追加 ★
                                         body: JSON.stringify({
                                                 roomId: Number(roomId),
                                                 text: text,
@@ -1071,8 +1025,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         // キーワード入力時にフィルターを実行
         document.getElementById("keyword").addEventListener("input", applyFilters);
-
-        // ★修正: チェックボックス変更時にフィルターを実行する処理をDOMイベントリスナーに追加
         document.querySelector('.checkbox-group input[type="checkbox"]').addEventListener('change', applyFilters);
 
 
@@ -1165,7 +1117,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 buildingBtn.querySelector(".arrow").textContent = "▼";
                         }
                 });
-        } // applyFilters 関数の閉じ括弧
+        } 
 
         // ======= フィルター設定を収集するヘルパー関数 =======
         function collectFilterSettings() {
@@ -1182,10 +1134,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                         keyword: document.getElementById("keyword").value.trim().toLowerCase(),
                         day: dayLabelForData, // 曜日名 (例: "水")
                         period: periodIdForData, // 常に時限IDを持つ
-                        // 号館はHTMLの3番目のオプショングループ
                         buildings: Array.from(document.querySelectorAll('.option-group:nth-of-type(3) button.active')).map(b => b.textContent + '号館'),
                         equipment: Array.from(document.querySelectorAll('.option-group.wide button.active')).map(b => b.textContent),
-                        // ★修正: チェックボックスの状態をブーリアンで取得
                         hideOccupied: document.querySelector('.checkbox-group input[type="checkbox"]').checked
                 };
 
@@ -1236,7 +1186,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                         document.querySelectorAll('#themeSelector .theme-btn').forEach(b => {
                                 b.classList.toggle('active', b.dataset.theme === name);
                         });
-                        // 🟡 ここから追加部分（色名テキストを変更）
                         const legendRed = document.querySelector('.legend-red');
                         const legendBlue = document.querySelector('.legend-blue');
 
