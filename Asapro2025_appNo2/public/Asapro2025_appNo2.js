@@ -523,80 +523,129 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         // ======= 教室リストの動的生成 =======
-        const buildingList = document.querySelector(".building-list");
-        const res = await fetch("/api/classrooms");
-        const classrooms = await res.json();
-
-        const grouped = classrooms.reduce((acc, room) => {
-                if (!acc[room.building]) acc[room.building] = [];
-                acc[room.building].push(room);
-                return acc;
-        }, {});
-
-        for (const [building, rooms] of Object.entries(grouped)) {
-                // 1. 建物全体を包むコンテナを作成
-                const buildingContainer = document.createElement("div");
-                buildingContainer.className = "building-container";
-                buildingContainer.dataset.building = building;
-                buildingList.appendChild(buildingContainer);
-
-
-                const buildingBtn = document.createElement("button");
-                buildingBtn.className = "building-item";
-                buildingBtn.dataset.target = `building-${building}`;
-                buildingBtn.innerHTML = `${building} <span class="arrow">▼</span>`;
-                // buildingContainer に追加
-                buildingContainer.appendChild(buildingBtn);
-
-                const detailDiv = document.createElement("div");
-                detailDiv.className = "building-detail";
-                detailDiv.id = `building-${building}`;
-                // buildingContainer に追加
-                buildingContainer.appendChild(detailDiv);
-
-                const roomsDiv = document.createElement("div");
-                roomsDiv.className = "rooms";
-                detailDiv.appendChild(roomsDiv);
-
-                rooms.forEach(room => {
-                        const btn = document.createElement("button");
-                        btn.className = `room ${room.status === "空き" ? "blue" : "red"}`;
-                        btn.textContent = room.name;
-
-                        // フィルター用データ属性とroomDataの埋め込み
-                        btn.dataset.roomId = room.id;
-                        btn.dataset.building = room.building;
-                        btn.dataset.status = room.status;
-                        btn.dataset.tags = (room.tags || []).join(',');
-                        btn.roomData = room; // 教室オブジェクト全体を要素に保持
-
-                        btn.addEventListener("click", () => openRoomModal(room));
-                        roomsDiv.appendChild(btn);
-                });
-
-                //  アコーディオンクリック処理
-                buildingBtn.addEventListener("click", () => {
-                        const arrow = buildingBtn.querySelector(".arrow");
-                        const isOpen = detailDiv.classList.contains("open");
-
-                        // 他のすべてのアコーディオンを閉じる
-                        document.querySelectorAll(".building-detail").forEach(div => {
-                                div.classList.remove("open");
-                                div.style.maxHeight = null;
-                                div.style.opacity = 0;
-                        });
-                        document.querySelectorAll(".arrow").forEach(a => a.textContent = "▼");
-
-                        if (!isOpen) {
-                                detailDiv.classList.add("open");
-                                detailDiv.style.maxHeight = detailDiv.scrollHeight + "px";
-                                detailDiv.style.opacity = 1;
-                                arrow.textContent = "▲";
-                                // スクロールターゲットを buildingContainer に変更
-                                setTimeout(() => buildingContainer.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+       const buildingList = document.querySelector(".building-list");
+        if (buildingList) {
+                // 1. データの読み込み
+                try {
+                        const res = await fetch("/api/classrooms");
+                        if (!res.ok) {
+                                throw new Error(`HTTP error! status: ${res.status}`);
                         }
-                });
-        } // forループの閉じ括弧
+                        const classrooms = await res.json();
+
+                        // 2. データを号館ごとにグループ化
+                        const grouped = classrooms.reduce((acc, room) => {
+                                if (!acc[room.building]) acc[room.building] = [];
+                                acc[room.building].push(room);
+                                return acc;
+                        }, {});
+
+                        // 3. 号館ごとにループし、DOMを構築
+                        for (const [building, rooms] of Object.entries(grouped)) {
+                                // A. 建物全体のコンテナ（親要素）
+                                const buildingContainer = document.createElement("div");
+                                buildingContainer.className = "building-container";
+                                buildingContainer.dataset.building = building;
+                                buildingList.appendChild(buildingContainer);
+
+                                // B. 号館の開閉ボタン
+                                const buildingBtn = document.createElement("button");
+                                buildingBtn.className = "building-item";
+                                buildingBtn.dataset.target = `building-${building}`;
+                                buildingBtn.innerHTML = `${building} <span class="arrow">▼</span>`;
+                                buildingContainer.appendChild(buildingBtn);
+
+                                // C. 教室リストを格納する詳細エリア
+                                const detailDiv = document.createElement("div");
+                                detailDiv.className = "building-detail";
+                                detailDiv.id = `building-${building}`;
+                                buildingContainer.appendChild(detailDiv);
+
+                                // --- ★ 変更点: 階層ごとに再グループ化するロジック ★ ---
+
+                                // 4. 号館内の教室を階層ごとに再グループ化 (room.floor を使用)
+                                const groupedByFloor = rooms.reduce((acc, room) => {
+                                        const floor = room.floor || "不明な階層";
+                                        if (!acc[floor]) acc[floor] = [];
+                                        acc[floor].push(room);
+                                        return acc;
+                                }, {});
+
+                                // 5. 階層名（キー）を取得しソート
+                                const sortedFloors = Object.keys(groupedByFloor).sort();
+
+                                // 6. 階層ごとにループし、DOM要素を作成
+                                sortedFloors.forEach(floor => {
+                                        // F1. 階層全体を包むコンテナ
+                                        const floorContainer = document.createElement("div");
+                                        floorContainer.className = "floor-container";
+
+                                        // F2. 階層の見出し（例: <h4>1F</h4>）
+                                        const floorHeader = document.createElement("h4");
+                                        floorHeader.className = "floor";
+                                        floorHeader.textContent = floor;
+                                        floorContainer.appendChild(floorHeader);
+
+                                        // F3. 教室ボタンを配置するコンテナ
+                                        const roomsDiv = document.createElement("div");
+                                        roomsDiv.className = "rooms";
+                                        floorContainer.appendChild(roomsDiv);
+
+                                        // floorContainer を building-detail に追加
+                                        detailDiv.appendChild(floorContainer);
+
+                                        // F4. 階層内の各教室ボタンを作成
+                                        groupedByFloor[floor].forEach(room => {
+                                                const btn = document.createElement("button");
+                                                // statusに基づいて色を決定
+                                                btn.className = `room ${room.status === "空き" ? "blue" : "red"}`;
+                                                btn.textContent = room.name;
+
+                                                // フィルター用データ属性とroomDataの埋め込み
+                                                btn.dataset.roomId = room.id;
+                                                btn.dataset.building = room.building;
+                                                btn.dataset.status = room.status;
+                                                btn.dataset.tags = (room.tags || []).join(',');
+                                                btn.roomData = room; // 教室オブジェクト全体を要素に保持
+
+                                                // クリックイベントリスナー
+                                                btn.addEventListener("click", () => openRoomModal(room));
+                                                roomsDiv.appendChild(btn);
+                                        });
+                                });
+
+                                // --- ★ 変更点ここまで ★ ---
+
+                                // D. アコーディオンクリック処理
+                                buildingBtn.addEventListener("click", () => {
+                                        const arrow = buildingBtn.querySelector(".arrow");
+                                        const isOpen = detailDiv.classList.contains("open");
+
+                                        // 他のすべてのアコーディオンを閉じる
+                                        document.querySelectorAll(".building-detail").forEach(div => {
+                                                div.classList.remove("open");
+                                                div.style.maxHeight = null;
+                                                div.style.opacity = 0;
+                                        });
+                                        document.querySelectorAll(".arrow").forEach(a => a.textContent = "▼");
+
+                                        if (!isOpen) {
+                                                // 現在のアコーディオンを開く
+                                                detailDiv.classList.add("open");
+                                                // スクロール高さを計算して設定
+                                                detailDiv.style.maxHeight = detailDiv.scrollHeight + "px";
+                                                detailDiv.style.opacity = 1;
+                                                arrow.textContent = "▲";
+                                                // スクロール
+                                                setTimeout(() => buildingContainer.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+                                        }
+                                });
+                        }
+                } catch (e) {
+                        console.error("教室データの読み込みまたはDOM構築中にエラーが発生しました:", e);
+                        // エラーメッセージをユーザーに表示するなどの対応を追加しても良い
+                }
+        }
 
         // ======= モーダル制御 =======
         const closeModal = document.getElementById("closeModal");
@@ -1168,6 +1217,146 @@ document.addEventListener("DOMContentLoaded", async function () {
                         setHeaderPeriod(periodInfo.headerText);
                 }
         }
+
+        (function () {
+                // ヘルパー: body の theme- で始まるクラスをすべて削除
+                function clearThemeClasses(el) {
+                        Array.from(el.classList)
+                                .filter(c => c.startsWith('theme-'))
+                                .forEach(c => el.classList.remove(c));
+                }
+
+                // テーマ適用処理
+                function applyTheme(name) {
+                        if (!name) return;
+                        clearThemeClasses(document.body);
+                        document.body.classList.add(`theme-${name}`);
+                        localStorage.setItem('theme', name);
+                        // active ボタン管理
+                        document.querySelectorAll('#themeSelector .theme-btn').forEach(b => {
+                                b.classList.toggle('active', b.dataset.theme === name);
+                        });
+                        // 🟡 ここから追加部分（色名テキストを変更）
+                        const legendRed = document.querySelector('.legend-red');
+                        const legendBlue = document.querySelector('.legend-blue');
+
+                        if (legendRed && legendBlue) {
+                                switch (name) {
+                                        case 'normal':
+                                                legendRed.textContent = '赤：授業あり';
+                                                legendBlue.textContent = '青：授業なし';
+                                                break;
+                                        case 'colorblind':
+                                                legendRed.textContent = 'オレンジ：授業あり';
+                                                legendBlue.textContent = '青：授業なし';
+                                                break;
+                                        case 'red':
+                                                legendRed.textContent = '赤：授業あり';
+                                                legendBlue.textContent = '青：授業なし';
+                                                break;
+                                        case 'pink':
+                                                legendRed.textContent = 'ピンク：授業あり';
+                                                legendBlue.textContent = '水色：授業なし';
+                                                break;
+                                        case 'orange':
+                                                legendRed.textContent = 'オレンジ：授業あり';
+                                                legendBlue.textContent = '緑：授業なし';
+                                                break;
+                                        case 'yellow':
+                                                legendRed.textContent = '黄：授業あり';
+                                                legendBlue.textContent = '水色：授業なし';
+                                                break;
+                                        case 'lightgreen':
+                                                legendRed.textContent = 'ピンク：授業あり';
+                                                legendBlue.textContent = '黄緑：授業なし';
+                                                break;
+                                        case 'green':
+                                                legendRed.textContent = '茶：授業あり';
+                                                legendBlue.textContent = '緑：授業なし';
+                                                break;
+                                        case 'skyblue':
+                                                legendRed.textContent = 'ピンク：授業あり';
+                                                legendBlue.textContent = '水色：授業なし';
+                                                break;
+                                        case 'blue':
+                                                legendRed.textContent = 'グレー：授業あり';
+                                                legendBlue.textContent = '青：授業なし';
+                                                break;
+                                        case 'purple':
+                                                legendRed.textContent = 'オレンジ：授業あり';
+                                                legendBlue.textContent = '紫：授業なし';
+                                                break;
+                                        case 'beige':
+                                                legendRed.textContent = 'ピンク：授業あり';
+                                                legendBlue.textContent = 'ベージュ：授業なし';
+                                                break;
+                                        case 'brown':
+                                                legendRed.textContent = 'ベージュ：授業あり';
+                                                legendBlue.textContent = '茶：授業なし';
+                                                break;
+                                        case 'gray':
+                                                legendRed.textContent = 'グレー：授業あり';
+                                                legendBlue.textContent = '黒：授業なし';
+                                                break;
+                                        case 'black':
+                                                legendRed.textContent = 'グレー：授業あり';
+                                                legendBlue.textContent = '白：授業なし';
+                                                break;
+                                        default:
+                                                legendRed.textContent = '赤：授業あり';
+                                                legendBlue.textContent = '青：授業なし';
+                                                break;
+                                }
+                        }
+                        console.log(`[theme] applyTheme → theme-${name}`);
+                }
+
+                // 初期化
+                function initThemeSwitcher() {
+                        const themeSelector = document.getElementById('themeSelector');
+                        if (!themeSelector) {
+                                console.error('[theme] #themeSelector が見つかりません。HTML内の id を確認してください。');
+                                return;
+                        }
+
+                        // ボタン一覧を確認（デバッグ用ログ）
+                        const buttons = Array.from(themeSelector.querySelectorAll('.theme-btn'));
+                        console.log('[theme] themeSelector found:', !!themeSelector, 'buttons:', buttons.length);
+                        buttons.forEach(b => {
+                                if (!b.dataset.theme) {
+                                        console.warn('[theme] theme-btn に data-theme がありません:', b);
+                                }
+                        });
+
+                        // 個別リスナー（イベント委譲に問題がある場合に備えて個別登録）
+                        buttons.forEach(btn => {
+                                btn.addEventListener('click', (e) => {
+                                        const name = btn.dataset.theme;
+                                        console.log('[theme] button clicked:', name);
+                                        if (!name) return;
+                                        applyTheme(name);
+                                });
+                        });
+
+                        // 保存済みテーマの復元 or 初期ノーマル
+                        const saved = localStorage.getItem('theme');
+                        if (saved) {
+                                console.log('[theme] saved theme detected:', saved);
+                                applyTheme(saved);
+                        } else {
+                                console.log('[theme] no saved theme — applying theme-normal by default');
+                                applyTheme('normal');
+                        }
+                }
+
+                // DOMContentLoaded 待ち（既に終わっている場合は即実行）
+                if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', initThemeSwitcher);
+                } else {
+                        initThemeSwitcher();
+                }
+        })();
+        
         updateCurrentPeriod(); // 起動時に現在の時限を表示
         setInterval(updateCurrentPeriod, 60000); // リアルタイム更新
 
