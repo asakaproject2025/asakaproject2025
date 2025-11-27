@@ -564,11 +564,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                                         groupedByFloor[floor].forEach(room => {
                                                 const btn = document.createElement("button");
                                                 // statusに基づいて色を決定
-                                                btn.className = `room ${room.status === 0 ? "blue" : "red"}`;
+                                                btn.className = `room ${room.status === "0" ? "blue" : "red"}`;
                                                 //色覚多様性の時のみ丸バツを表記
                                                 let roomName = room.name;
                                                 if (currentTheme === 'colorblind') {
-                                                        const symbol = room.status === 0 ? '⚪︎' : '✕';
+                                                        const symbol = room.status === "0" ? '⚪︎' : '✕';
                                                         roomName = symbol + ' ' + roomName;
                                                 }
                                                 
