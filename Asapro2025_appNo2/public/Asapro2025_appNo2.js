@@ -475,9 +475,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                 btn.addEventListener("click", () => showSubpage("mypagePage"));
         });
         document.querySelectorAll(".backHome").forEach(btn => {
-                btn.addEventListener("click", () => showSubpage("homePage"));
+                btn.addEventListener("click", () => {
+                        showSubpage("homePage");
+                        window.location.reload();
+                });
         });
-
+        
         if (openFilter && filterModal) { 
                 openFilter.addEventListener("click", () => filterModal.style.display = "flex");
         }
@@ -536,6 +539,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 const sortedFloors = Object.keys(groupedByFloor).sort();
 
                                 // 6. 階層ごとにループし、DOM要素を作成
+                                const currentTheme = localStorage.getItem('theme') || 'normal';
+                                
                                 sortedFloors.forEach(floor => {
                                         // F1. 階層全体を包むコンテナ
                                         const floorContainer = document.createElement("div");
@@ -560,6 +565,13 @@ document.addEventListener("DOMContentLoaded", async function () {
                                                 const btn = document.createElement("button");
                                                 // statusに基づいて色を決定
                                                 btn.className = `room ${room.status === "空き" ? "blue" : "red"}`;
+                                                //色覚多様性の時のみ丸バツを表示
+                                                let roomName = room.name;
+                                                if (currentTheme === 'colorblind') {
+                                                        const symbol = room.status === "空き" ? '⚪︎' : '✕';
+                                                        roomName = symbol + ' ' + roomName;
+                                                }
+                                                
                                                 btn.textContent = room.name;
 
                                                 // フィルター用データ属性とroomDataの埋め込み
