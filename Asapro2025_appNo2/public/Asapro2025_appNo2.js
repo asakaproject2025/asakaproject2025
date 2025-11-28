@@ -63,7 +63,7 @@ if (googleBtn) {
 
                         const response = await fetch('/api/auth/sync', {
                                 method: 'POST',
-                                headers: { 'Authorization': `Bearer ${idToken}`},
+                                headers: { 'Authorization': `Bearer ${idToken}` },
                         });
 
                         const data = await response.json();
@@ -122,6 +122,126 @@ if (logoutBtn) {
         });
 }
 
+const nicknameInput = document.getElementById('nicknameInput');
+const saveNicknameBtn = document.getElementById('saveNicknameBtn');
+const nicknameMsg = document.getElementById('nicknameMsg');
+// ==== 統計情報用の要素取得 ====
+const statVoteClass = document.getElementById('statVoteClass');
+const statVoteCongestion = document.getElementById('statVoteCongestion');
+const statCommentCount = document.getElementById('statCommentCount');
+const statGotLikes = document.getElementById('statGotLikes');
+/**
+* 1. 初期表示処理
+* サーバー(GET /api/user/me)から最新のユーザー情報を取得してフォームに表示する
+*/
+async function initNicknameForm(user) {
+        // ログインしていない場合はフォームを無効化して終了
+        if (!nicknameInput || !saveNicknameBtn) return;
+        if (!user) {
+                nicknameInput.value = "";
+                nicknameInput.disabled = true;
+                saveNicknameBtn.disabled = true;
+                // ログアウト時は0に戻す
+                if (statVoteClass) statVoteClass.textContent = "-";
+                if (statVoteCongestion) statVoteCongestion.textContent = "-";
+                if (statCommentCount) statCommentCount.textContent = "-";
+                if (statGotLikes) statGotLikes.textContent = "-";
+                return;
+        }
+        // フォームを有効化
+        nicknameInput.disabled = false;
+        saveNicknameBtn.disabled = false;
+        // ロード中であることを示す（プレースホルダーなどで）
+        nicknameInput.placeholder = "読み込み中...";
+        try {
+                // IDトークンを取得
+                const idToken = await user.getIdToken();
+                // ★ GET APIを呼び出して現在の情報を取得
+                const response = await fetch('/api/user/me', {
+                        method: 'GET',
+                        headers: {
+                                'Authorization': `Bearer ${idToken}`
+                        }
+                });
+                if (response.ok) {
+                        const data = await response.json();
+                        const u = data.user;
+                        // DBに名前があればそれを表示、なければ空（プレースホルダー「名無しさん」が見える状態）
+                        nicknameInput.value = (u && u.nickname) || "";
+                        // ★ 統計情報の反映 (数字が無ければ0)
+                        if (u) {
+                                if (statVoteClass) statVoteClass.textContent = u.vote_class_count || 0;
+                                if (statVoteCongestion) statVoteCongestion.textContent = u.vote_congestion_count || 0;
+                                if (statCommentCount) statCommentCount.textContent = u.comment_count || 0;
+                                if (statGotLikes) statGotLikes.textContent = u.got_like_count || 0;
+                        }
+                } else {
+                        console.error("ユーザー情報の取得に失敗しました");
+                }
+        } catch (err) {
+                console.error("通信エラー:", err);
+        } finally {
+                nicknameInput.placeholder = "名無しさん"; // 読み込み完了後に戻す
+        }
+}
+/**
+* 2. 保存ボタンクリック時の処理
+* 入力された名前をサーバー(POST /api/user/nickname)に送信して更新する
+*/
+if (saveNicknameBtn) {
+        saveNicknameBtn.addEventListener('click', async () => {
+                const newName = nicknameInput.value.trim();
+                nicknameMsg.textContent = ""; // メッセージクリア
+                // 簡単なバリデーション
+                if (!newName) {
+                        nicknameMsg.textContent = "ニックネームを入力してください";
+                        nicknameMsg.style.color = "red";
+                        return;
+                }
+                const user = auth.currentUser;
+                if (!user) {
+                        nicknameMsg.textContent = "ログインが必要です";
+                        return;
+                }
+                try {
+                        // UIを「保存中」の状態にする
+                        saveNicknameBtn.textContent = "保存中...";
+                        saveNicknameBtn.disabled = true;
+                        nicknameInput.disabled = true;
+                        const idToken = await user.getIdToken();
+                        // ★ POST APIを呼び出して更新
+                        const response = await fetch('/api/user/nickname', {
+                                method: 'POST',
+                                headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${idToken}`
+                                },
+                                body: JSON.stringify({ nickname: newName })
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success) {
+                                // 成功
+                                nicknameMsg.textContent = "変更を保存しました！";
+                                nicknameMsg.style.color = "green";
+                                // 必要であればlocalStorageなども更新
+                                // localStorage.setItem('userNickname', newName);
+                        } else {
+                                // APIからのエラーメッセージを表示
+                                throw new Error(data.message || "更新に失敗しました");
+                        }
+                } catch (err) {
+                        console.error(err);
+                        nicknameMsg.textContent = err.message || "エラーが発生しました";
+                        nicknameMsg.style.color = "red";
+                } finally {
+                        // UIを元の状態に戻す
+                        saveNicknameBtn.textContent = "保存";
+                        saveNicknameBtn.disabled = false;
+                        nicknameInput.disabled = false;
+                }
+        });
+}
+
 // --- 自動遷移・状態監視 ---
 onAuthStateChanged(auth, (user) => {
 
@@ -134,12 +254,16 @@ onAuthStateChanged(auth, (user) => {
                 if (googleMsg) {
                         googleMsg.textContent = `${user.displayName || user.email} でログイン中`;
                 }
+                initNicknameForm(user);
+
         } else {
                 console.log("未ログイン");
                 googleMsg.textContent = "ログアウト中";
                 isLoggedIn = false;
                 currentUserId = null;
                 localStorage.removeItem('currentUserId');
+                initNicknameForm(null);
+
         }
 
         if (isHome) {
@@ -221,7 +345,7 @@ function isTimestampInPeriod(timestamp, periodId) {
 
         const period = PERIOD_TIMES.find(p => String(p.id) === String(periodId));
         if (!period) return true; // 定義されていない時限IDは無視
-        
+
         const commentTime = new Date(timestamp);
         const dateStr = commentTime.toISOString().split('T')[0];
         const startTime = new Date(`${dateStr}T${period.start}`);
@@ -480,8 +604,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                         window.location.reload();
                 });
         });
-        
-        if (openFilter && filterModal) { 
+
+        if (openFilter && filterModal) {
                 openFilter.addEventListener("click", () => filterModal.style.display = "flex");
         }
         if (closeFilter && filterModal) {
@@ -489,11 +613,25 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         // ======= 教室リストの動的生成 =======
-       const buildingList = document.querySelector(".building-list");
+        const buildingList = document.querySelector(".building-list");
         if (buildingList) {
                 // 1. データの読み込み
                 try {
-                        const res = await fetch("/api/classrooms");
+                        const todayIndex = new Date().getDay();
+                        // 修正: グローバル定数 WEEKDAYS を使用
+                        const selectedDay = document.querySelector('.option-group:nth-of-type(1) button.active')?.textContent || WEEKDAYS[todayIndex];
+
+                        // 時限は2番目のオプショングループになりました
+                        let selectedPeriod = document.querySelector('.option-group:nth-of-type(2) button.active')?.textContent;
+                        if (!selectedPeriod) {
+                                selectedPeriod = getCurrentPeriodId().id; // idプロパティを取得
+                        }
+                        const params = new URLSearchParams({
+                                day: selectedDay,
+                                period: selectedPeriod
+                        });
+                        const buildingList = document.querySelector(".building-list");
+                        const res = await fetch(`/api/classrooms?${params.toString()}`);
                         if (!res.ok) {
                                 throw new Error(`HTTP error! status: ${res.status}`);
                         }
@@ -540,7 +678,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                                 // 6. 階層ごとにループし、DOM要素を作成
                                 const currentTheme = localStorage.getItem('theme') || 'normal';
-                                
+
                                 sortedFloors.forEach(floor => {
                                         // F1. 階層全体を包むコンテナ
                                         const floorContainer = document.createElement("div");
@@ -571,7 +709,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                                         const symbol = room.status === "空き" ? '⚪︎' : '✕';
                                                         roomName = symbol + ' ' + roomName;
                                                 }
-                                                
+
                                                 btn.textContent = room.name;
 
                                                 // フィルター用データ属性とroomDataの埋め込み
@@ -625,7 +763,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 document.getElementById("modal-capacity").textContent = room.capacity ?? "不明";
                 document.getElementById("modal-status").textContent = room.status;
                 document.getElementById("modal-tags").textContent = (room.tags || []).join("・");
-                document.getElementById("modal-room-photo").src = room.image_url || "noimage.png";
+                document.getElementById("modal-room-photo").src = room.image_url || "/images/classroom/noimage.png";
 
                 modal.style.display = "flex";
                 modal.dataset.roomId = room.id; // 教室IDをデータ属性に保存
@@ -1129,7 +1267,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 buildingBtn.querySelector(".arrow").textContent = "▼";
                         }
                 });
-        } 
+        }
 
         // ======= フィルター設定を収集するヘルパー関数 =======
         function collectFilterSettings() {
@@ -1317,7 +1455,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                         initThemeSwitcher();
                 }
         })();
-        
+
         updateCurrentPeriod(); // 起動時に現在の時限を表示
         setInterval(updateCurrentPeriod, 60000); // リアルタイム更新
 
