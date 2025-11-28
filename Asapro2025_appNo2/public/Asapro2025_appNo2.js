@@ -763,7 +763,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 document.getElementById("modal-capacity").textContent = room.capacity ?? "不明";
                 document.getElementById("modal-status").textContent = room.status;
                 document.getElementById("modal-tags").textContent = (room.tags || []).join("・");
-                document.getElementById("modal-room-photo").src = room.image_url || "/images/classroom/noimage.png";
+                document.getElementById("modal-room-photo").src = room.image_url || "/images/classrooms/noimage.png";
 
                 modal.style.display = "flex";
                 modal.dataset.roomId = room.id; // 教室IDをデータ属性に保存
