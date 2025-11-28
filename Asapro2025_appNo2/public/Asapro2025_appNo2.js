@@ -832,6 +832,12 @@ document.addEventListener("DOMContentLoaded", async function () {
                         const metaDiv = document.createElement("div");
                         metaDiv.className = "comment-meta";
 
+                        // ニックネーム用の要素を作成
+                        const nicknameSpan = document.createElement("span");
+                        nicknameSpan.className = "comment-author";
+                        // APIから nickname が来ていればそれを、なければデフォルト名を表示
+                        nicknameSpan.textContent = comment.user_nickname || '名無しさん';
+
                         // ... (timeMeta, dayLabel の計算は同じ) ...
                         const timeMeta = new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         const dayLabel = comment.time_slot_day ? `${comment.time_slot_day}曜 ` : '';
@@ -863,6 +869,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                         }
 
                         // 3. 作成した要素を組み立てる (appendChild)
+                        metaDiv.appendChild(nicknameSpan);
                         metaDiv.appendChild(dayPeriodSpan);
                         metaDiv.appendChild(timeSpan);
                         metaDiv.appendChild(likeBtn);
