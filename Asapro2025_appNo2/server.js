@@ -60,6 +60,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const serviceAccountPath = isProduction
     ? '/etc/secrets/serviceAccountKey.json'        // 本番: Renderの指定場所
     : path.join(_dirname, 'serviceAccountKey.json'); // ローカル: プロジェクト内
+
 // 3. ファイルを「同期的に」読み込む (readFileSync)
 const serviceAccountRaw = fs.readFileSync(serviceAccountPath, 'utf8');
 
@@ -89,14 +90,37 @@ app.get("/api/classrooms/:id", async (req, res) => {
 app.get("/api/classrooms", async (req, res) => {
     try {
         // DBの classrooms テーブルから全データを取得
-        // 
+       
+        // 1. クライアントから送られてくる曜日と時限を受け取る
+        const { day, period } = req.query;
+
+        // 2. SQLクエリを作成
+        // classroomsテーブルをベースに、サブクエリでuser_submissionsをチェックします
         const sql = `
-            SELECT * FROM classrooms
+            SELECT 
+                c.*,
+                -- ★ ステータス判定ロジック
+                -- user_submissionsテーブルで、
+                -- 「この教室(c.id)」かつ「指定された曜日・時限」かつ「has_class = true」の
+                -- 行数が 0より大きければ '授業'、そうでなければ '空き' とする
+                CASE 
+                    WHEN (
+                        SELECT COUNT(*) 
+                        FROM user_submissions us 
+                        WHERE us.classroom_id = c.id 
+                          AND us.time_slot_day = $1 
+                          AND us.time_slot_period = $2 
+                          AND us.has_class = true
+                    ) > 0 THEN '授業' 
+                    ELSE '空き' 
+                END AS status
+
+            FROM classrooms c
             ORDER BY
-                -- ★ 1. 号館ソート (前回と同じ)
+                -- ★ 1. 号館ソート
                 CAST(REPLACE(building, '号館', '') AS INTEGER) ASC,
                 
-                -- ★ 2. 教室名ソート (ここからが新しい)
+                -- ★ 2. 教室名ソート
                 
                 -- 2a. まず「数字グループ(1)」か「文字グループ(2)」かに分ける
                 CASE 
@@ -118,10 +142,9 @@ app.get("/api/classrooms", async (req, res) => {
                     ELSE name
                 END ASC;
         `;
-        const { rows } = await db.query(sql);
-
-        // ★ 以前と同じように、JSONの配列(rows)をそのまま返す
-        // (app.js は 'classrooms' という変数名で受け取る想定)
+        const params = [day, period];
+        
+        const { rows } = await db.query(sql, params);
         res.json(rows);
 
     } catch (err) {
@@ -224,12 +247,12 @@ app.get("/api/votes", authMiddleware, async (req, res) => {
     }
 });
 
-/// GET: 全コメントデータを取得 (いいね情報付き)
+/// GET: 全コメントデータを取得 (いいね、ニックネーム情報付き)
 app.get("/api/comments", authMiddleware, async (req, res) => {
 
     // 1. (将来のFirebase認証用) 
     // ログインしていなければ req.user は undefined => currentUserId は null になる
-    const currentUserId = req.user ? req.currentUserId : null;
+    const currentUserId = req.currentUserId;
 
     // (※認証実装前のテスト用: 'user_firebase_uid_abc123' などを入れるか、nullのままにする)
     //const currentUserId = 12;
@@ -240,6 +263,10 @@ app.get("/api/comments", authMiddleware, async (req, res) => {
             SELECT 
                 c.id, c.content, c.classroom_id, c.time_slot_day, c.time_slot_period, c.created_at,
                 
+                -- (i) ユーザーのニックネームを取得
+                -- (nicknameが未設定の場合は 'ゲスト' や name を使う)
+                COALESCE(u.nickname, '名無しさん') AS user_nickname,
+
                 -- (A) このコメントの総いいね数をカウントし、'likes' カラムとして追加
                 (SELECT COUNT(*) FROM comment_likes cl_count WHERE cl_count.comment_id = c.id) AS likes,
                 
@@ -251,7 +278,9 @@ app.get("/api/comments", authMiddleware, async (req, res) => {
                 
             FROM 
                 comments c
-                
+            -- (ii) ニックネームのためにusersと横付け
+            JOIN
+                users u ON c.user_id = u.id
             -- (C) 「私」( $1 ) のいいね記録だけを LEFT JOIN で横付け
             LEFT JOIN 
                 comment_likes cl 
@@ -267,7 +296,7 @@ app.get("/api/comments", authMiddleware, async (req, res) => {
         // 3. queryの第2引数に [currentUserId] を渡す
         const { rows } = await db.query(sql, [currentUserId]);
 
-        // 4. フロントエンドには 'likes' と 'is_liked_by_me' が追加されたデータが返る
+        // 4. フロントエンドには 'likes' と 'is_liked_by_me' 、'user_nicknameが追加されたデータが返る
         res.json({ success: true, comments: rows });
 
     } catch (err) {
@@ -510,6 +539,103 @@ app.post("/api/comments/:id/like", authMiddleware, async (req, res) => {
     } catch (error) {
         console.error("Failed to process like request:", error);
         res.status(500).json({ error: "Failed to update like count." });
+    }
+});
+
+/**
+ * POST /api/user/nickname
+ * ログイン中のユーザーのニックネームを登録・更新する
+ */
+app.post("/api/user/nickname", authMiddleware, async (req, res) => {
+    const currentUserId = req.currentUserId;
+    const { nickname } = req.body;
+
+    // バリデーション
+    if (!nickname || typeof nickname !== 'string' || nickname.trim() === '') {
+        return res.status(400).json({ success: false, message: 'ニックネームを入力してください。' });
+    }
+    if (nickname.length > 20) {
+        return res.status(400).json({ success: false, message: 'ニックネームは20文字以内で入力してください。' });
+    }
+
+    try {
+        // ユーザーIDに基づいてnicknameを更新
+        const sql = `
+            UPDATE users 
+            SET nickname = $1 
+            WHERE id = $2 
+            RETURNING id, email, nickname;
+        `;
+        const params = [nickname, currentUserId];
+        const { rows } = await db.query(sql, params);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'ユーザーが見つかりません。' });
+        }
+
+        res.json({
+            success: true,
+            message: 'ニックネームを更新しました。',
+            user: rows[0]
+        });
+
+    } catch (err) {
+        console.error('APIエラー (PUT /user/nickname):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラーが発生しました。' });
+    }
+});
+
+/**
+ * GET /api/user/me
+ * ログイン中のユーザー自身の情報を取得する
+ */
+app.get("/api/user/me", authMiddleware, async (req, res) => {
+    const currentUserId = req.currentUserId;
+
+    try {
+        // 自分の情報を取得
+        const sql = `
+            SELECT 
+                u.id, 
+                u.email, 
+                u.nickname,
+                
+                -- 1. 授業あり/なしボタンを押した数 (has_class が記録されている行)
+                (SELECT COUNT(*) FROM user_submissions WHERE user_id = u.id AND has_class IS NOT NULL) AS vote_class_count,
+                
+                -- 2. 混雑度ボタンを押した数 (congestion_level が記録されている行)
+                (SELECT COUNT(*) FROM user_submissions WHERE user_id = u.id AND congestion_level IS NOT NULL) AS vote_congestion_count,
+                
+                -- 3. コメント投稿数 (comment_text が記録されている行)
+                (SELECT COUNT(*) FROM comments WHERE user_id = u.id AND content IS NOT NULL) AS comment_count,
+                
+                -- 4. コメントにもらったいいね総数
+                -- (自分の投稿(us)に対して、いいねテーブル(cl)がついている数をカウント)
+                (
+                    SELECT COUNT(*)
+                    FROM comment_likes cl
+                    JOIN comments us ON cl.comment_id = us.id
+                    WHERE us.user_id = u.id
+                ) AS got_like_count
+
+            FROM users u
+            WHERE u.id = $1;
+        `;
+        const { rows } = await db.query(sql, [currentUserId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'ユーザーが見つかりません。' });
+        }
+
+        // 情報を返す
+        res.json({
+            success: true,
+            user: rows[0]
+        });
+
+    } catch (err) {
+        console.error('APIエラー (GET /user/me):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラーが発生しました。' });
     }
 });
 
