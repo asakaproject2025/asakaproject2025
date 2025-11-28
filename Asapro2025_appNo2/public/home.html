@@ -259,19 +259,42 @@
     <div class="profile-card">
       <div class="profile-card-content">
         <div class="username-container">
-          <p>○</p>
-          <p>　ユーザ名</p>
+          <div class="nickname-input-group">
+            <label for="nicknameInput">ニックネーム</label>
+            <input type="text" id="nicknameInput" placeholder="名無しさん" maxlength="20">
+            <button id="saveNicknameBtn">保存</button>
+          </div>
+          <p id="nicknameMsg" class="status-msg"></p>
         </div>
-        <p>授業ありなしボタンを押した数（仮）</p>
-        <p>混雑度ボタンを押した数（仮）</p>
-        <p>コメントを投稿した数（仮）</p>
+        <div class="stats-container">
+
+          <div class="stat-row">
+            <span class="stat-label">授業ありなしボタンを押した数</span>
+            <span class="stat-value" id="statVoteClass">0</span>
+          </div>
+
+          <div class="stat-row">
+            <span class="stat-label">混雑度ボタンを押した数</span>
+            <span class="stat-value" id="statVoteCongestion">0</span>
+          </div>
+
+          <div class="stat-row">
+            <span class="stat-label">コメントを投稿した数</span>
+            <span class="stat-value" id="statCommentCount">0</span>
+          </div>
+
+          <div class="stat-row">
+            <span class="stat-label">もらったいいね数</span>
+            <span class="stat-value highlight" id="statGotLikes">0</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="login-logout-container">
       <button class="menu-btn" id="logoutBtn">ログアウト</button>
       <p id="googleMsg"></p>
       <p id="userEmail" style="margin-top:8px;"></p>
-      <p id="userUid"></p>
+      <!-- <p id="userUid"></p> -->
     </div>
   </div>
 
@@ -500,7 +523,7 @@
       <button class="menu-btn" id="logoutBtn">ログイン・ログアウト</button>
       <p id="googleMsg"></p>
       <p id="userEmail" style="margin-top:8px;"></p>
-      <p id="userUid"></p>
+      <!-- <p id="userUid"></p> -->
     </div>
   </div>
 
