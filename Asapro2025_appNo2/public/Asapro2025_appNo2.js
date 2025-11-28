@@ -706,7 +706,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                                 //色覚多様性の時のみ丸バツを表記
                                                 let roomName = room.name;
                                                 if (currentTheme === 'colorblind') {
-                                                        const symbol = room.status === "空き" ? '⚪︎' : '✕';
+                                                        const symbol = data.status === "空き" ? '⚪︎' : '✕';
                                                         roomName = symbol + ' ' + roomName;
                                                 }
 
