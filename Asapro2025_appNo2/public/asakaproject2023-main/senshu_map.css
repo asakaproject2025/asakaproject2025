@@ -60,9 +60,9 @@ img.searchimge {
 }
 
 #back-app{
-	width: 	10%;
-    padding: 6px;
-    margin-top: 4px;
+	width: 	20%;
+    padding: 4px;
+    margin-top: 2px;
     border: none;
     border-radius: 3px;
     background-color: #c9e0be;
@@ -71,6 +71,7 @@ img.searchimge {
     font-weight: bolder;
     font-size: 1.0rem;
     cursor: pointer;
+	padding-left: 14px;
 }
 
 
