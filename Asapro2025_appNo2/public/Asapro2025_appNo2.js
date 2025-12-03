@@ -1197,6 +1197,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                         if (!roomData) {
                                 isVisible = false;
                         } else {
+                                // --- 複合フィルター（キーワード、号館、設備） ---
+
                                 // a. キーワードフィルター
                                 if (filters.keyword && !roomData.name.toLowerCase().includes(filters.keyword)) {
                                         isVisible = false;
@@ -1211,6 +1213,9 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 if (filters.equipment.length > 0) {
                                         const roomTags = new Set(roomData.tags || []);
                                         for (const tag of filters.equipment) {
+                                                // 既に非表示が決定している場合はスキップ
+                                                if (!isVisible) break;
+
                                                 if (!roomTags.has(tag)) {
                                                         isVisible = false;
                                                         break;
@@ -1218,14 +1223,16 @@ document.addEventListener("DOMContentLoaded", async function () {
                                         }
                                 }
 
-                                // d. 使用中の教室を非表示フィルター
+
                                 if (filters.hideOccupied && roomData.status === '授業中') {
                                         isVisible = false;
                                 }
+                                // -------------------------------------------------------------------
+
                         }
 
-                        // 3. 表示/非表示の切り替え
-                        roomElement.classList.toggle("filtered-out", !isVisible);
+                        // 3. 教室の表示/非表示を直接 style.display で切り替える
+                        roomElement.style.display = isVisible ? 'block' : 'none';
 
                         // 可視な教室が見つかった場合、その階層を記録
                         if (isVisible) {
@@ -1235,6 +1242,72 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 }
                         }
                 });
+
+                // -------------------------------------------------------------
+                // 2. 階層コンテナの表示/非表示ロジック
+                // -------------------------------------------------------------
+                document.querySelectorAll(".floor-container").forEach(floorContainer => {
+                        const shouldBeVisible = visibleFloors.has(floorContainer);
+
+                        // 可視な教室を持たない階層は非表示にする
+                        floorContainer.style.display = shouldBeVisible ? 'block' : 'none';
+                });
+
+                // 2. ヘッダー表示の更新ロジック (既存のロジック)
+                const day = filters.day;
+                const period = filters.period;
+
+                if (day && period) {
+                        const periodDisplay = (period === '昼休み') ? '昼休み' : `${period}限`;
+                        setHeaderPeriod(`${day}曜 ${periodDisplay}`);
+                } else if (day) {
+                        const periodText = getPeriod().headerText.split(' ')[1];
+                        setHeaderPeriod(`${day}曜 ${periodText}`);
+                } else if (period) {
+                        const dayLabel = WEEKDAYS[new Date().getDay()];
+                        const periodDisplay = (period === '昼休み') ? '昼休み' : `${period}限`;
+                        setHeaderPeriod(`${dayLabel}曜 ${periodDisplay}`);
+                } else {
+                        updateCurrentPeriod();
+                }
+
+                // 3. 号館の表示/非表示ロジック (既存のロジックを利用)
+                document.querySelectorAll(".building-container").forEach(container => {
+                        let visibleRoomsCount = 0;
+
+                        // 階層コンテナ（.floor-container）を一つずつチェック
+                        container.querySelectorAll(".floor-container").forEach(floorContainer => {
+                                // 階層自体が非表示であれば、その中の教室はカウントしない
+                                if (floorContainer.style.display !== 'none') {
+                                        // 階層が表示されている場合、その中の教室で非表示になっていないものをカウント
+                                        floorContainer.querySelectorAll(".room").forEach(roomElement => {
+                                                if (roomElement.style.display !== 'none') {
+                                                        visibleRoomsCount++;
+                                                }
+                                        });
+                                }
+                        });
+
+                        if (visibleRoomsCount === 0) {
+                                // 教室が一つも表示されていなければ、建物全体を非表示
+                                container.style.display = 'none';
+                        } else {
+                                // 一つでも表示されていれば、建物全体を表示
+                                container.style.display = 'block';
+                        }
+
+                        // 号館の開閉状態をリセット
+                        const detailDiv = container.querySelector(".building-detail");
+                        const buildingBtn = container.querySelector(".building-item");
+
+                        if (detailDiv && detailDiv.classList.contains("open")) {
+                                detailDiv.classList.remove("open");
+                                detailDiv.style.maxHeight = null;
+                                detailDiv.style.opacity = 0;
+                                buildingBtn.querySelector(".arrow").textContent = "▼";
+                        }
+                });
+        }
 
                 // -------------------------------------------------------------
                 // 2. 階層コンテナの表示/非表示ロジック
