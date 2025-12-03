@@ -988,10 +988,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 
         async function submitVote(roomId, type) {
-                // 修正: グローバル定数 WEEKDAYS を使用
                 const selectedDay = document.querySelector('.option-group:nth-of-type(1) button.active')?.textContent || WEEKDAYS[new Date().getDay()];
-
-                // 時限は2番目のオプショングループになりました
+                
                 let selectedPeriod = document.querySelector('.option-group:nth-of-type(2) button.active')?.textContent;
                 if (!selectedPeriod) {
                         selectedPeriod = getCurrentPeriodId().id; // idプロパティを取得
@@ -1188,6 +1186,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         // ======= フィルタリング処理のコア関数 =======
         function applyFilters() {
                 const filters = collectFilterSettings();
+                // 可視な教室を持つ階層を追跡するためのSet
+                const visibleFloors = new Set();
 
                 // 1. 教室要素のフィルタリング
                 document.querySelectorAll(".room").forEach(roomElement => {
@@ -1226,31 +1226,45 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                         // 3. 表示/非表示の切り替え
                         roomElement.classList.toggle("filtered-out", !isVisible);
+
+                        // 可視な教室が見つかった場合、その階層を記録
+                        if (isVisible) {
+                                const floorContainer = roomElement.closest('.floor-container');
+                                if (floorContainer) {
+                                        visibleFloors.add(floorContainer);
+                                }
+                        }
                 });
 
-                // 2. ヘッダー表示の更新ロジック
+                // -------------------------------------------------------------
+                // 2. 階層コンテナの表示/非表示ロジック
+                // -------------------------------------------------------------
+                document.querySelectorAll(".floor-container").forEach(floorContainer => {
+                        const shouldBeVisible = visibleFloors.has(floorContainer);
+
+                        // 可視な教室を持たない階層は非表示にする
+                        floorContainer.style.display = shouldBeVisible ? 'block' : 'none';
+                });
+
+                // 2. ヘッダー表示の更新ロジック (既存のロジック)
                 const day = filters.day;
-                const period = filters.period; // collectFilterSettingsでデータとして決定された時限ID
+                const period = filters.period;
 
                 if (day && period) {
-                        // 曜日と時限が両方選択されている場合
                         const periodDisplay = (period === '昼休み') ? '昼休み' : `${period}限`;
                         setHeaderPeriod(`${day}曜 ${periodDisplay}`);
                 } else if (day) {
-                        // 曜日だけ選択されている場合（時限はデータとして決定されたものを使う）
-                        const periodText = getPeriod().headerText.split(' ')[1]; // 「Y限」の部分 (例: 1限, 昼休み)
-                        setHeaderPeriod(`${day}曜 ${periodText}`); // 選択された曜日と現在時刻の時限を組み合わせる
+                        const periodText = getPeriod().headerText.split(' ')[1];
+                        setHeaderPeriod(`${day}曜 ${periodText}`);
                 } else if (period) {
-                        // 時限だけ選択されている場合（曜日は今日のまま）
-                        const dayLabel = WEEKDAYS[new Date().getDay()]; // 修正: グローバル定数 WEEKDAYS を使用
+                        const dayLabel = WEEKDAYS[new Date().getDay()];
                         const periodDisplay = (period === '昼休み') ? '昼休み' : `${period}限`;
-                        setHeaderPeriod(`${dayLabel}曜 ${periodDisplay}`); // 曜日名に「曜」を追加
+                        setHeaderPeriod(`${dayLabel}曜 ${periodDisplay}`);
                 } else {
-                        // どちらも選択されていない場合、現在の時刻に戻す
                         updateCurrentPeriod();
                 }
 
-                // 3. 号館の表示/非表示ロジック
+                // 3. 号館の表示/非表示ロジック (既存のロジックを利用)
                 document.querySelectorAll(".building-container").forEach(container => {
                         // 非表示になっていない教室（.room:not(.filtered-out)）の数をカウント
                         const visibleRoomsCount = container.querySelectorAll(".room:not(.filtered-out)").length;
@@ -1274,9 +1288,13 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 buildingBtn.querySelector(".arrow").textContent = "▼";
                         }
                 });
-        }
+        } 
 
-        // ======= フィルター設定を収集するヘルパー関数 =======
+
+        // ----------------------------------------------------------------------
+        // 【フィルター設定を収集するヘルパー関数】
+        // ----------------------------------------------------------------------
+
         function collectFilterSettings() {
                 // 時限はHTMLの2番目のオプショングループ
                 let periodIdForData = document.querySelector('.option-group:nth-of-type(2) button.active')?.textContent;
@@ -1291,8 +1309,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                         keyword: document.getElementById("keyword").value.trim().toLowerCase(),
                         day: dayLabelForData, // 曜日名 (例: "水")
                         period: periodIdForData, // 常に時限IDを持つ
+                        // 号館はHTMLの3番目のオプショングループ
                         buildings: Array.from(document.querySelectorAll('.option-group:nth-of-type(3) button.active')).map(b => b.textContent + '号館'),
                         equipment: Array.from(document.querySelectorAll('.option-group.wide button.active')).map(b => b.textContent),
+                        // チェックボックスの状態をブーリアンで取得
                         hideOccupied: document.querySelector('.checkbox-group input[type="checkbox"]').checked
                 };
 
