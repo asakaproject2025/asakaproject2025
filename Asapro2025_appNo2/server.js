@@ -90,7 +90,7 @@ app.get("/api/classrooms/:id", async (req, res) => {
 app.get("/api/classrooms", async (req, res) => {
     try {
         // DBの classrooms テーブルから全データを取得
-       
+
         // 1. クライアントから送られてくる曜日と時限を受け取る
         const { day, period } = req.query;
 
@@ -99,6 +99,18 @@ app.get("/api/classrooms", async (req, res) => {
         const sql = `
             SELECT 
                 c.*,
+                -- ★ 追加: 設備フラグを 'tags' 配列にまとめる処理
+                -- 1. CASE文で true なら '名前'、false なら NULL に変換して配列にする
+                -- 2. ARRAY_REMOVE で NULL を取り除く -> ['コンセント', 'WiFi'] のようになる
+                ARRAY_REMOVE(ARRAY[
+                    CASE WHEN c.has_outlet THEN 'コンセント' ELSE NULL END,
+                    CASE WHEN c.has_wifi THEN 'WiFi' ELSE NULL END,
+                    CASE WHEN c.has_whiteboard THEN 'ホワイトボード' ELSE NULL END,
+                    CASE WHEN c.has_blackboard THEN '黒板' ELSE NULL END,
+                    CASE WHEN c.is_food_allowed THEN '飲食可' ELSE NULL END
+                    CASE WHEN c.has_extension_cord THEN '延長コード有' ELSE NULL END
+                ], NULL) AS tags,
+
                 -- ★ ステータス判定ロジック
                 -- user_submissionsテーブルで、
                 -- 「この教室(c.id)」かつ「指定された曜日・時限」かつ「has_class = true」の
@@ -143,7 +155,7 @@ app.get("/api/classrooms", async (req, res) => {
                 END ASC;
         `;
         const params = [day, period];
-        
+
         const { rows } = await db.query(sql, params);
         res.json(rows);
 
