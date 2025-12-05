@@ -107,7 +107,7 @@ app.get("/api/classrooms", async (req, res) => {
                     CASE WHEN c.has_wifi THEN 'WiFi' ELSE NULL END,
                     CASE WHEN c.has_whiteboard THEN 'ホワイトボード' ELSE NULL END,
                     CASE WHEN c.has_blackboard THEN '黒板' ELSE NULL END,
-                    CASE WHEN c.is_food_allowed THEN '飲食可' ELSE NULL END
+                    CASE WHEN c.is_food_allowed THEN '飲食可' ELSE NULL END,
                     CASE WHEN c.has_extension_cord THEN '延長コード有' ELSE NULL END
                 ], NULL) AS tags,
 
