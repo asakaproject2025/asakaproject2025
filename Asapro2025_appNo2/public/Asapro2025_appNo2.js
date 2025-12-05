@@ -609,12 +609,23 @@ document.addEventListener("DOMContentLoaded", async function () {
                 openFilter.addEventListener("click", () => filterModal.style.display = "flex");
         }
         if (closeFilter && filterModal) {
-                closeFilter.addEventListener("click", () => filterModal.style.display = "none");
+                closeFilter.addEventListener("click", () => {
+                        filterModal.style.display = "none";
+                        makeBldLi();
+                })
         }
 
         // ======= 教室リストの動的生成 =======
-        const buildingList = document.querySelector(".building-list");
-        if (buildingList) {
+        makeBldLi();
+        async function makeBldLi() {
+                const buildingList = document.querySelector(".building-list");
+                if (!buildingList) return;
+
+                // 1. 現在開いている建物の名前を覚えておく
+                const openBuilding = document.querySelector(".building-detail.open")?.closest(".building-container")?.dataset.building;
+
+                // 2. リストをクリア
+                buildingList.innerHTML = "";
                 // 1. データの読み込み
                 try {
                         const todayIndex = new Date().getDay();
@@ -710,7 +721,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                                         roomName = symbol + ' ' + roomName;
                                                 }
 
-                                                btn.textContent = roomName;
+                                                btn.textContent = room.name;
 
                                                 // フィルター用データ属性とroomDataの埋め込み
                                                 btn.dataset.roomId = room.id;
@@ -753,6 +764,21 @@ document.addEventListener("DOMContentLoaded", async function () {
                         console.error("教室データの読み込みまたはDOM構築中にエラーが発生しました:", e);
                         // エラーメッセージをユーザーに表示するなどの対応を追加しても良い
                 }
+                // 3. 構築が終わった後、覚えておいた建物を開く
+                if (openBuilding) {
+                        const targetDetail = document.getElementById(`building-${openBuilding}`);
+                        const targetBtn = targetDetail?.previousElementSibling; // 開閉ボタン
+
+                        if (targetDetail && targetBtn) {
+                                targetDetail.classList.add("open");
+                                targetDetail.style.maxHeight = targetDetail.scrollHeight + "px";
+                                targetDetail.style.opacity = 1;
+
+                                const arrow = targetBtn.querySelector(".arrow");
+                                if (arrow) arrow.textContent = "▲";
+                        }
+                }
+                applyFilters();
         }
 
         // ======= モーダル制御 =======
@@ -988,8 +1014,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 
         async function submitVote(roomId, type) {
+                // 修正: グローバル定数 WEEKDAYS を使用
                 const selectedDay = document.querySelector('.option-group:nth-of-type(1) button.active')?.textContent || WEEKDAYS[new Date().getDay()];
-                
+
+                // 時限は2番目のオプショングループになりました
                 let selectedPeriod = document.querySelector('.option-group:nth-of-type(2) button.active')?.textContent;
                 if (!selectedPeriod) {
                         selectedPeriod = getCurrentPeriodId().id; // idプロパティを取得
@@ -1186,8 +1214,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         // ======= フィルタリング処理のコア関数 =======
         function applyFilters() {
                 const filters = collectFilterSettings();
-                // 可視な教室を持つ階層を追跡するためのSet
-                const visibleFloors = new Set();
 
                 // 1. 教室要素のフィルタリング
                 document.querySelectorAll(".room").forEach(roomElement => {
@@ -1197,8 +1223,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                         if (!roomData) {
                                 isVisible = false;
                         } else {
-                                // --- 複合フィルター（キーワード、号館、設備） ---
-
                                 // a. キーワードフィルター
                                 if (filters.keyword && !roomData.name.toLowerCase().includes(filters.keyword)) {
                                         isVisible = false;
@@ -1213,9 +1237,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 if (filters.equipment.length > 0) {
                                         const roomTags = new Set(roomData.tags || []);
                                         for (const tag of filters.equipment) {
-                                                // 既に非表示が決定している場合はスキップ
-                                                if (!isVisible) break;
-
                                                 if (!roomTags.has(tag)) {
                                                         isVisible = false;
                                                         break;
@@ -1223,121 +1244,42 @@ document.addEventListener("DOMContentLoaded", async function () {
                                         }
                                 }
 
-
-                                if (filters.hideOccupied && roomData.status === '授業中') {
+                                // d. 使用中の教室を非表示フィルター
+                                console.log(roomData.status)
+                                if (filters.hideOccupied && roomData.status === '授業') {
                                         isVisible = false;
                                 }
-                                // -------------------------------------------------------------------
-
                         }
 
-                        // 3. 教室の表示/非表示を直接 style.display で切り替える
-                        roomElement.style.display = isVisible ? 'block' : 'none';
-
-                        // 可視な教室が見つかった場合、その階層を記録
-                        if (isVisible) {
-                                const floorContainer = roomElement.closest('.floor-container');
-                                if (floorContainer) {
-                                        visibleFloors.add(floorContainer);
-                                }
-                        }
+                        // 3. 表示/非表示の切り替え
+                        roomElement.classList.toggle("filtered-out", !isVisible);
+                        
                 });
+                
 
-                // -------------------------------------------------------------
-                // 2. 階層コンテナの表示/非表示ロジック
-                // -------------------------------------------------------------
-                document.querySelectorAll(".floor-container").forEach(floorContainer => {
-                        const shouldBeVisible = visibleFloors.has(floorContainer);
-
-                        // 可視な教室を持たない階層は非表示にする
-                        floorContainer.style.display = shouldBeVisible ? 'block' : 'none';
-                });
-
-                // 2. ヘッダー表示の更新ロジック (既存のロジック)
+                // 2. ヘッダー表示の更新ロジック
                 const day = filters.day;
-                const period = filters.period;
+                const period = filters.period; // collectFilterSettingsでデータとして決定された時限ID
 
                 if (day && period) {
+                        // 曜日と時限が両方選択されている場合
                         const periodDisplay = (period === '昼休み') ? '昼休み' : `${period}限`;
                         setHeaderPeriod(`${day}曜 ${periodDisplay}`);
                 } else if (day) {
-                        const periodText = getPeriod().headerText.split(' ')[1];
-                        setHeaderPeriod(`${day}曜 ${periodText}`);
+                        // 曜日だけ選択されている場合（時限はデータとして決定されたものを使う）
+                        const periodText = getPeriod().headerText.split(' ')[1]; // 「Y限」の部分 (例: 1限, 昼休み)
+                        setHeaderPeriod(`${day}曜 ${periodText}`); // 選択された曜日と現在時刻の時限を組み合わせる
                 } else if (period) {
-                        const dayLabel = WEEKDAYS[new Date().getDay()];
+                        // 時限だけ選択されている場合（曜日は今日のまま）
+                        const dayLabel = WEEKDAYS[new Date().getDay()]; // 修正: グローバル定数 WEEKDAYS を使用
                         const periodDisplay = (period === '昼休み') ? '昼休み' : `${period}限`;
-                        setHeaderPeriod(`${dayLabel}曜 ${periodDisplay}`);
+                        setHeaderPeriod(`${dayLabel}曜 ${periodDisplay}`); // 曜日名に「曜」を追加
                 } else {
+                        // どちらも選択されていない場合、現在の時刻に戻す
                         updateCurrentPeriod();
                 }
 
-                // 3. 号館の表示/非表示ロジック (既存のロジックを利用)
-                document.querySelectorAll(".building-container").forEach(container => {
-                        let visibleRoomsCount = 0;
-
-                        // 階層コンテナ（.floor-container）を一つずつチェック
-                        container.querySelectorAll(".floor-container").forEach(floorContainer => {
-                                // 階層自体が非表示であれば、その中の教室はカウントしない
-                                if (floorContainer.style.display !== 'none') {
-                                        // 階層が表示されている場合、その中の教室で非表示になっていないものをカウント
-                                        floorContainer.querySelectorAll(".room").forEach(roomElement => {
-                                                if (roomElement.style.display !== 'none') {
-                                                        visibleRoomsCount++;
-                                                }
-                                        });
-                                }
-                        });
-
-                        if (visibleRoomsCount === 0) {
-                                // 教室が一つも表示されていなければ、建物全体を非表示
-                                container.style.display = 'none';
-                        } else {
-                                // 一つでも表示されていれば、建物全体を表示
-                                container.style.display = 'block';
-                        }
-
-                        // 号館の開閉状態をリセット
-                        const detailDiv = container.querySelector(".building-detail");
-                        const buildingBtn = container.querySelector(".building-item");
-
-                        if (detailDiv && detailDiv.classList.contains("open")) {
-                                detailDiv.classList.remove("open");
-                                detailDiv.style.maxHeight = null;
-                                detailDiv.style.opacity = 0;
-                                buildingBtn.querySelector(".arrow").textContent = "▼";
-                        }
-                });
-        }
-
-                // -------------------------------------------------------------
-                // 2. 階層コンテナの表示/非表示ロジック
-                // -------------------------------------------------------------
-                document.querySelectorAll(".floor-container").forEach(floorContainer => {
-                        const shouldBeVisible = visibleFloors.has(floorContainer);
-
-                        // 可視な教室を持たない階層は非表示にする
-                        floorContainer.style.display = shouldBeVisible ? 'block' : 'none';
-                });
-
-                // 2. ヘッダー表示の更新ロジック (既存のロジック)
-                const day = filters.day;
-                const period = filters.period;
-
-                if (day && period) {
-                        const periodDisplay = (period === '昼休み') ? '昼休み' : `${period}限`;
-                        setHeaderPeriod(`${day}曜 ${periodDisplay}`);
-                } else if (day) {
-                        const periodText = getPeriod().headerText.split(' ')[1];
-                        setHeaderPeriod(`${day}曜 ${periodText}`);
-                } else if (period) {
-                        const dayLabel = WEEKDAYS[new Date().getDay()];
-                        const periodDisplay = (period === '昼休み') ? '昼休み' : `${period}限`;
-                        setHeaderPeriod(`${dayLabel}曜 ${periodDisplay}`);
-                } else {
-                        updateCurrentPeriod();
-                }
-
-                // 3. 号館の表示/非表示ロジック (既存のロジックを利用)
+                // 3. 号館の表示/非表示ロジック
                 document.querySelectorAll(".building-container").forEach(container => {
                         // 非表示になっていない教室（.room:not(.filtered-out)）の数をカウント
                         const visibleRoomsCount = container.querySelectorAll(".room:not(.filtered-out)").length;
@@ -1361,13 +1303,9 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 buildingBtn.querySelector(".arrow").textContent = "▼";
                         }
                 });
-        } 
+        }
 
-
-        // ----------------------------------------------------------------------
-        // 【フィルター設定を収集するヘルパー関数】
-        // ----------------------------------------------------------------------
-
+        // ======= フィルター設定を収集するヘルパー関数 =======
         function collectFilterSettings() {
                 // 時限はHTMLの2番目のオプショングループ
                 let periodIdForData = document.querySelector('.option-group:nth-of-type(2) button.active')?.textContent;
@@ -1382,10 +1320,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                         keyword: document.getElementById("keyword").value.trim().toLowerCase(),
                         day: dayLabelForData, // 曜日名 (例: "水")
                         period: periodIdForData, // 常に時限IDを持つ
-                        // 号館はHTMLの3番目のオプショングループ
                         buildings: Array.from(document.querySelectorAll('.option-group:nth-of-type(3) button.active')).map(b => b.textContent + '号館'),
                         equipment: Array.from(document.querySelectorAll('.option-group.wide button.active')).map(b => b.textContent),
-                        // チェックボックスの状態をブーリアンで取得
                         hideOccupied: document.querySelector('.checkbox-group input[type="checkbox"]').checked
                 };
 
