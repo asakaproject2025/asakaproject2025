@@ -1001,7 +1001,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 // isTimestampInPeriod(c.timestamp, selectedPeriod) は、データ保存時に
                                 // 既に曜日・時限が確定しているため、基本的に不要（サーバーでタイムスタンプをチェック済みと仮定）
                         );
-                        console.log(roomComments);
 
                         displayComments(roomComments, commentList);
                 } catch (e) {
@@ -1245,7 +1244,6 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 }
 
                                 // d. 使用中の教室を非表示フィルター
-                                console.log(roomData.status)
                                 if (filters.hideOccupied && roomData.status === '授業') {
                                         isVisible = false;
                                 }
