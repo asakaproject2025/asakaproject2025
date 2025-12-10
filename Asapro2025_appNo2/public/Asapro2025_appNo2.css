@@ -1203,6 +1203,14 @@ h2 {
     font-size: 25px;
 }
 
+.nameSave-btn{
+    background: var(--bg-color);
+    color: var(--accent-hover);
+    border: 2px solid var(--accent-color);
+    transition: 0.4s;
+    padding: 2px 2px;
+}
+
 .stats-container {
     display: block;
 }
