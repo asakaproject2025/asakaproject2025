@@ -672,6 +672,18 @@ app.post('/api/auth/sync', async (req, res) => {
         const firebase_uid = decodedToken.uid;
         const email = decodedToken.email;
 
+        // 許可するドメイン (例: @senshu-u.jp)
+        const ALLOWED_DOMAIN = 'senshu-u.jp';
+
+        // メールアドレスが許可ドメインで終わっているかチェック
+        if (!email.endsWith('@' + ALLOWED_DOMAIN)) {
+            console.warn(`不正なドメインからのアクセス: ${email}`);
+            return res.status(403).json({
+                success: false,
+                message: `許可されていないメールアドレスです。${ALLOWED_DOMAIN} のアカウントのみ使用可能です。`
+            });
+        }
+
         // 2. 既存ユーザーを検索 (firebase_uid で)
         let userResult = await db.query('SELECT id, email FROM users WHERE firebase_uid = $1', [firebase_uid]);
 
