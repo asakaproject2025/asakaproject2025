@@ -45,10 +45,31 @@ const continueBtn = $('#continueBtn');          // 置いていなければ null
 const logoutBtnOnIndex = $('#logoutBtnOnIndex');// 同上
 if (googleBtn) {
         const provider = new GoogleAuthProvider();
+        // Googleのログイン画面で、最初から特定のドメインを優先表示させる
+        provider.setCustomParameters({
+                hd: "senshu-u.jp" // Hosted Domain: これを設定すると、ユーザー選択画面でこのドメインが優先されます
+        });
         googleBtn.addEventListener('click', async () => {
                 try {
                         const result = await signInWithPopup(auth, provider);
                         const user = result.user;
+
+                        // ★★★ クライアント側でのドメインチェック ★★★
+                        const ALLOWED_DOMAIN = 'senshu-u.jp'; // 許可するドメイン
+
+                        if (!user.email.endsWith('@' + ALLOWED_DOMAIN)) {
+                                // ドメインが違う場合
+
+                                // 1. Firebase上から即座に削除する (または signOut させる)
+                                // delete() を使うと、間違って作られたFirebaseアカウント自体を消せます
+                                await user.delete().catch(e => console.error(e));
+
+                                // 2. エラーメッセージを表示
+                                alert(`申し訳ありません。\n@${ALLOWED_DOMAIN} のメールアドレスのみログイン可能です。\n別のアカウントで試してください。`);
+
+                                // 3. 処理を中断
+                                return;
+                        }
 
                         const email = user.email;
                         const uid = user.uid;
@@ -243,7 +264,36 @@ if (saveNicknameBtn) {
 }
 
 // --- 自動遷移・状態監視 ---
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
+        if (isHome) {
+
+                // ----------------------------------------------------
+                // ★ セキュリティチェック (検問)
+                // ----------------------------------------------------
+                const ALLOWED_DOMAIN = 'senshu-u.jp';
+
+                // ケース1: そもそもログインしていない
+                if (!user) {
+                        console.warn("未ログインアクセス。リダイレクトします。");
+                        location.replace('index.html'); // 履歴に残さないよう replace を使う
+                        return;
+                }
+
+                // ケース2: ログインしてるけどドメインが違う (URL直打ち対策)
+                if (!user.email.endsWith('@' + ALLOWED_DOMAIN)) {
+                        console.warn("許可されていないドメイン。ログアウトさせます。");
+                        await signOut(auth); // 強制ログアウト
+                        alert("このアカウントではアクセスできません。");
+                        location.replace('index.html');
+                        return;
+                }
+
+                // ----------------------------------------------------
+                // ★ 合格！画面を表示する
+                // ----------------------------------------------------
+                // 隠していた body を表示
+                document.body.style.display = 'block';
+        }
 
         // ★ ページ読み込み時にDBのIDを復元
         currentUserId = localStorage.getItem('currentUserId');
@@ -1251,9 +1301,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                         // 3. 表示/非表示の切り替え
                         roomElement.classList.toggle("filtered-out", !isVisible);
-                        
+
                 });
-                
+
 
                 // 2. ヘッダー表示の更新ロジック
                 const day = filters.day;
