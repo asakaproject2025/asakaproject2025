@@ -103,6 +103,14 @@ body.modal-open {
     background-color: #c2dcb2;
 }
 
+#loginGuide{
+    margin: 10px auto;
+    font-size: 1.0rem;
+    color: #dadada;
+    text-align: center;
+    letter-spacing: 0.03em;
+}
+
 #homePage {
     padding-top: 130px;
 }
