@@ -538,7 +538,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 brown: 'images/close-brown.png',
                 gray: 'images/close-gray.png',
                 black: 'images/close-black.png',
-                sendaigreen: 'icon/close-sendaigreen.png',
+                sendaigreen: 'images/close-sendaigreen.png',
                 default: 'images/close.png'
         };
 
