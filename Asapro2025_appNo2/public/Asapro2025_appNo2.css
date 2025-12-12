@@ -1361,6 +1361,10 @@ h2 {
     background: #414141;
 }
 
+#sendaigreen-btn {
+    background: #136224;
+}
+
 /* お問い合わせ */
 .contact-container {
     padding: 0 30px;
@@ -1707,6 +1711,27 @@ h2 {
     --room-blue-text: #222222;
     --room-blue-text-hover: #222222;
     --room-blue-border: #fbfbfb;
+}
+
+.theme-sendaigreen {
+    --bg-color: #ffffff;
+    --text-color: #185325;
+    --main-color: #d9eee1;
+    --main-hover: #cbe3d4;
+    --accent-color: #136224;
+    --accent-hover: #0b511a;
+
+    --room-red-bg: #409652;
+    --room-red-hover: #2b7039;
+    --room-red-text: #ffffff;
+    --room-red-text-hover: #ffffff;
+    --room-red-border: #409652;
+
+    --room-blue-bg: #585da5;
+    --room-blue-hover: #444780;
+    --room-blue-text: #ffffff;
+    --room-blue-text-hover: #ffffff;
+    --room-blue-border: #585da5;
 }
 
 @media screen and (max-width:640px) {
