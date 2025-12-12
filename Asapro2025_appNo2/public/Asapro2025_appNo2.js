@@ -538,6 +538,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 brown: 'images/close-brown.png',
                 gray: 'images/close-gray.png',
                 black: 'images/close-black.png',
+                sendaigreen: 'icon/close-sendaigreen.png',
                 default: 'images/close.png'
         };
 
@@ -1484,6 +1485,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                                         case 'black':
                                                 legendRed.textContent = 'グレー：授業あり';
                                                 legendBlue.textContent = '白：授業なし';
+                                                break;
+                                        case 'sendaigreen':
+                                                legendRed.textContent = '専大グリーン：授業あり';
+                                                legendBlue.textContent = '専大ブルー：授業なし';
                                                 break;
                                         default:
                                                 legendRed.textContent = '赤：授業あり';
