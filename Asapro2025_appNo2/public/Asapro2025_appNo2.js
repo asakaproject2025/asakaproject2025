@@ -772,7 +772,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                                         roomName = symbol + ' ' + roomName;
                                                 }
 
-                                                btn.textContent = room.name;
+                                                btn.textContent = roomName;
 
                                                 // フィルター用データ属性とroomDataの埋め込み
                                                 btn.dataset.roomId = room.id;
