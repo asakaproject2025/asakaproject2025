@@ -1065,6 +1065,10 @@ h2 {
     font-family: "Kiwi Maru", sans-serif;
 }
 
+.comment-content {
+    width: 100%;
+}
+
 .comment-text {
     font-size: 0.9rem;
     color: var(--text-color);
@@ -1096,6 +1100,27 @@ h2 {
 .like-count {
     font-size: 0.8rem;
     margin-left: 2px;
+}
+
+.delete-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+}
+
+.delete-btn img {
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.delete-btn:hover img {
+  opacity: 1.0;
 }
 
 .post-area {
