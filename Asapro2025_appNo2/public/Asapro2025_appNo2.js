@@ -672,7 +672,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                 const buildingList = document.querySelector(".building-list");
                 if (!buildingList) return;
 
-                // 1. 現在開いている建物の名前を覚えておく
+                // 1. 更新前のスクロール位置を、現在開いている建物の名前を保存しておく
+                const savedScrollY = window.scrollY;
                 const openBuilding = document.querySelector(".building-detail.open")?.closest(".building-container")?.dataset.building;
 
                 // 2. リストをクリア
@@ -815,21 +816,43 @@ document.addEventListener("DOMContentLoaded", async function () {
                         console.error("教室データの読み込みまたはDOM構築中にエラーが発生しました:", e);
                         // エラーメッセージをユーザーに表示するなどの対応を追加しても良い
                 }
+
+                applyFilters();
+
                 // 3. 構築が終わった後、覚えておいた建物を開く
                 if (openBuilding) {
-                        const targetDetail = document.getElementById(`building-${openBuilding}`);
-                        const targetBtn = targetDetail?.previousElementSibling; // 開閉ボタン
+                        setTimeout(() => {
+                                const targetDetail = document.getElementById(`building-${openBuilding}`);
+                                const targetBtn = targetDetail?.previousElementSibling; // 開閉ボタン
 
-                        if (targetDetail && targetBtn) {
-                                targetDetail.classList.add("open");
-                                targetDetail.style.maxHeight = targetDetail.scrollHeight + "px";
-                                targetDetail.style.opacity = 1;
+                                if (targetDetail && targetBtn) {
+                                        // ★ アニメーションを一時的に無効化（瞬時に開くようにする）
+                                        targetDetail.style.transition = "none";
 
-                                const arrow = targetBtn.querySelector(".arrow");
-                                if (arrow) arrow.textContent = "▲";
-                        }
+                                        targetDetail.classList.add("open");
+                                        // この時点でフィルター適用後の正しい高さが取得できる
+                                        targetDetail.style.maxHeight = targetDetail.scrollHeight + "px";
+                                        targetDetail.style.opacity = 1;
+
+                                        const arrow = targetBtn.querySelector(".arrow");
+                                        if (arrow) arrow.textContent = "▲";
+
+                                        // スクロールもアニメーションなし(auto)にした方が自然かもしれません
+                                        // targetBtn.scrollIntoView({ behavior: "auto", block: "center" });
+
+                                        // ★ 処理完了後にアニメーション設定を元に戻す（次回クリック時はアニメーションするように）
+                                        // すぐに戻すと none が効かないことがあるため、わずかに遅らせます
+                                        setTimeout(() => {
+                                                targetDetail.style.transition = "";
+                                        }, 50);
+                                }
+                                window.scrollTo({
+                                        top: savedScrollY,
+                                        behavior: "auto" // 瞬時に戻す
+                                });
+                        }, 10); // 10ms程度のわずかな遅延で十分です
                 }
-                applyFilters();
+
         }
 
         // ======= モーダル制御 =======
@@ -850,6 +873,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
         closeModal.addEventListener("click", () => {
                 modal.style.display = "none";
+                makeBldLi();
         });
 
         function initModalTabs(modalElement) {
@@ -895,6 +919,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                         // 1. 各要素を .createElement で作成
                         const item = document.createElement("div");
                         item.className = "comment-item";
+
+                        item.dataset.commentId = comment.id;
 
                         const contentDiv = document.createElement("div");
                         contentDiv.className = "comment-content";
@@ -951,6 +977,34 @@ document.addEventListener("DOMContentLoaded", async function () {
                         metaDiv.appendChild(timeSpan);
                         metaDiv.appendChild(likeBtn);
                         metaDiv.appendChild(likeCountSpan);
+
+                        // サーバーから来た「自分のコメントフラグ」をチェック
+                        if (comment.is_my_comment) {
+                                const deleteBtn = document.createElement("button");
+                                deleteBtn.className = "delete-btn"; // CSSで右寄せにするクラス
+                                deleteBtn.title = "削除する";
+
+                                // 画像を利用する場合
+                                const deleteIcon = document.createElement("img");
+                                deleteIcon.src = "/images/trash.svg"; // ★画像のパスを指定
+                                deleteIcon.alt = "削除";
+                                deleteBtn.appendChild(deleteIcon);
+
+                                // 削除ボタンのクリックイベント
+                                deleteBtn.addEventListener("click", async () => {
+                                        if (!confirm("このコメントを削除してもよろしいですか？")) return;
+
+                                        // 削除APIを呼び出す関数を実行 (前回作成した setCommentDeletionStatus)
+                                        // true を渡して「削除状態」にする
+                                        await setCommentDeletionStatus(comment.id, true);
+
+                                        // 成功したらリストを再読み込みするなど
+                                        //displayComments(comments, commentListElement)
+                                });
+
+                                // metaDiv の「最後」に追加することで、CSSの margin-left: auto が効いて右端に行きます
+                                metaDiv.appendChild(deleteBtn);
+                        }
 
                         contentDiv.appendChild(textDiv);
                         contentDiv.appendChild(metaDiv);
@@ -1233,6 +1287,65 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 alert("ネットワークエラーにより投稿できませんでした。");
                         }
                 });
+        }
+
+        /**
+ * コメントの削除/復元を行う関数
+ * @param {number|string} commentId - 操作するコメントのID
+ * @param {boolean} isDeleted - trueなら削除(非表示)、falseなら復元(表示)
+ */
+        async function setCommentDeletionStatus(commentId, isDeleted) {
+                const user = auth.currentUser;
+                if (!user) {
+                        alert("ログインが必要です。");
+                        return;
+                }
+
+                try {
+                        const idToken = await user.getIdToken();
+
+                        // APIリクエスト
+                        const response = await fetch(`/api/comments/${commentId}`, {
+                                method: 'PATCH', // 部分更新
+                                headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${idToken}`
+                                },
+                                body: JSON.stringify({ is_deleted: isDeleted })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok && data.success) {
+                                console.log(`コメントID ${commentId} を ${isDeleted ? '削除' : '復元'} しました`);
+
+                                // 成功したら画面を更新 (例: コメント一覧を再読み込み)
+                                // loadComments(); 
+
+                                // または、DOM操作でそのコメントだけ即座に消す/表示を変える
+                                updateCommentUI(commentId, isDeleted);
+
+                        } else {
+                                alert(data.message || "操作に失敗しました。");
+                        }
+
+                } catch (err) {
+                        console.error("通信エラー:", err);
+                        alert("通信エラーが発生しました。");
+                }
+        }
+
+        // 画面上の見た目だけ変える関数
+        function updateCommentUI(commentId, isDeleted) {
+                const commentItem = document.querySelector(`.comment-item[data-comment-id="${commentId}"]`);
+                if (commentItem) {
+                        if (isDeleted) {
+                                commentItem.style.opacity = '0';
+                                setTimeout(() => commentItem.remove(), 300);
+                        } else {
+                                commentItem.classList.remove('deleted');
+                        }
+                }
         }
 
 
