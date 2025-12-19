@@ -117,12 +117,13 @@ app.get("/api/classrooms", async (req, res) => {
                 -- 行数が 0より大きければ '授業'、そうでなければ '空き' とする
                 CASE 
                     WHEN (
-                        SELECT COUNT(*) 
+                        SELECT 
+                            COUNT(*) FILTER (WHERE us.has_class = true) - 
+                            COUNT(*) FILTER (WHERE us.has_class = false)
                         FROM user_submissions us 
                         WHERE us.classroom_id = c.id 
                           AND us.time_slot_day = $1 
                           AND us.time_slot_period = $2 
-                          AND us.has_class = true
                     ) > 0 THEN '授業' 
                     ELSE '空き' 
                 END AS status
@@ -274,6 +275,11 @@ app.get("/api/comments", authMiddleware, async (req, res) => {
         const sql = `
             SELECT 
                 c.id, c.content, c.classroom_id, c.time_slot_day, c.time_slot_period, c.created_at,
+
+                CASE 
+                    WHEN c.user_id =  $1 THEN true 
+                    ELSE false 
+                END AS is_my_comment,
                 
                 -- (i) ユーザーのニックネームを取得
                 -- (nicknameが未設定の場合は 'ゲスト' や name を使う)
@@ -300,6 +306,8 @@ app.get("/api/comments", authMiddleware, async (req, res) => {
                 c.id = cl.comment_id 
             AND 
                 cl.user_id = $1 -- $1 に currentUserId が入る
+            WHERE 
+                c.is_deleted = false
                 
             ORDER BY 
                 c.created_at DESC;
@@ -738,6 +746,48 @@ app.post('/api/auth/sync', async (req, res) => {
             return res.status(409).json({ success: false, message: 'ユーザー重複エラー' });
         }
         console.error('APIエラー (POST /auth/sync):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラー' });
+    }
+});
+
+
+app.patch("/api/comments/:id", authMiddleware, async (req, res) => {
+    // 1. URLからコメントIDを取得
+    const commentId = req.params.id;
+    
+    // 2. 認証ミドルウェアからユーザーIDを取得 (操作者)
+    const currentUserId = req.currentUserId;
+
+    // 3. リクエストボディから設定したい状態を取得 (true:削除, false:復元)
+    const { is_deleted } = req.body;
+
+    // バリデーション
+    if (typeof is_deleted !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'is_deleted (true/false) が必要です。' });
+    }
+
+    try {
+        // 4. DB更新
+        // ★重要: WHERE句に user_id を追加して「自分のコメント」だけを更新できるようにする
+        const sql = `
+            UPDATE comments
+            SET is_deleted = $1
+            WHERE id = $2 AND user_id = $3
+            RETURNING id, is_deleted;
+        `;
+        
+        const params = [is_deleted, commentId, currentUserId];
+        const { rows } = await db.query(sql, params);
+
+        // 更新対象が見つからなかった場合 (ID違い または 他人のコメント)
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'コメントが見つからないか、権限がありません。' });
+        }
+
+        res.json({ success: true, comment: rows[0] });
+
+    } catch (err) {
+        console.error('APIエラー (PATCH /comments/:id):', err.stack);
         res.status(500).json({ success: false, message: 'DBエラー' });
     }
 });
