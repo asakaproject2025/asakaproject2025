@@ -90,7 +90,23 @@ app.get("/api/classrooms/:id", async (req, res) => {
 app.get("/api/classrooms", async (req, res) => {
     try {
         // DBの classrooms テーブルから全データを取得
+        // 今期の開始日（ターム開始日）を計算する
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // JSの月は0〜11なので+1する
 
+        let termStartDate;
+        if (currentMonth >= 9) {
+            // 9月〜12月：今年の9月1日
+            termStartDate = new Date(currentYear, 8, 1, 0, 0, 0, 0); 
+        } else if (currentMonth >= 4) {
+            // 4月〜8月：今年の4月1日
+            termStartDate = new Date(currentYear, 3, 1, 0, 0, 0, 0); 
+        } else {
+            // 1月〜3月：去年の9月1日
+            termStartDate = new Date(currentYear - 1, 8, 1, 0, 0, 0, 0);
+        }
+        
         // 1. クライアントから送られてくる曜日と時限を受け取る
         const { day, period } = req.query;
 
@@ -123,7 +139,9 @@ app.get("/api/classrooms", async (req, res) => {
                         FROM user_submissions us 
                         WHERE us.classroom_id = c.id 
                           AND us.time_slot_day = $1 
-                          AND us.time_slot_period = $2 
+                          AND us.time_slot_period = $2
+                          -- 計算した今期の開始日以降のデータのみに絞る
+                          AND us.created_at >= $3
                     ) > 0 THEN '授業' 
                     ELSE '空き' 
                 END AS status
@@ -155,7 +173,7 @@ app.get("/api/classrooms", async (req, res) => {
                     ELSE name
                 END ASC;
         `;
-        const params = [day, period];
+        const params = [day, period, termStartDate];
 
         const { rows } = await db.query(sql, params);
         res.json(rows);
@@ -208,6 +226,23 @@ app.get("/api/votes", authMiddleware, async (req, res) => {
                 message: "roomId, day, periodId のクエリパラメータが必要です。"
             });
         }
+        // 今期の開始日（ターム開始日）を計算する
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // JSの月は0〜11なので+1する
+
+        let termStartDate;
+        if (currentMonth >= 9) {
+            // 9月〜12月：今年の9月1日
+            termStartDate = new Date(currentYear, 8, 1, 0, 0, 0, 0); 
+        } else if (currentMonth >= 4) {
+            // 4月〜8月：今年の4月1日
+            termStartDate = new Date(currentYear, 3, 1, 0, 0, 0, 0); 
+        } else {
+            // 1月〜3月：去年の9月1日
+            termStartDate = new Date(currentYear - 1, 8, 1, 0, 0, 0, 0);
+        }
+        
         // SQL (CTEを使って2つの情報を同時に取得)
         const sql = `
             WITH aggregated_counts AS (
@@ -225,6 +260,7 @@ app.get("/api/votes", authMiddleware, async (req, res) => {
                     classroom_id = $1
                     AND time_slot_day = $2
                     AND time_slot_period = $3
+                    AND created_at >= $5 -- ユーザーの投票を今期分に絞る
             ),
             my_vote AS (
                 -- (B) 次に、同じ時間枠に対する「私」の投票を探す
@@ -241,6 +277,7 @@ app.get("/api/votes", authMiddleware, async (req, res) => {
                     AND time_slot_day = $2
                     AND time_slot_period = $3
                     AND user_id = $4 -- 「私」のID
+                    AND created_at >= $5 --「私」の過去期の投票も除外する
             )
             -- (C) 2つの結果を結合して返す
             SELECT
@@ -249,7 +286,7 @@ app.get("/api/votes", authMiddleware, async (req, res) => {
             FROM
                 aggregated_counts ac;
         `;
-        const params = [roomId, day, periodId, currentUserId];
+        const params = [roomId, day, periodId, currentUserId, termStartDate];
         const { rows } = await db.query(sql, params);
 
         // 4. クライアントに最新データを返す
@@ -269,6 +306,23 @@ app.get("/api/comments", authMiddleware, async (req, res) => {
 
     // (※認証実装前のテスト用: 'user_firebase_uid_abc123' などを入れるか、nullのままにする)
     //const currentUserId = 12;
+
+    // 今期の開始日（ターム開始日）を計算する
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // JSの月は0〜11なので+1する
+
+    let termStartDate;
+    if (currentMonth >= 9) {
+        // 9月〜12月：今年の9月1日
+        termStartDate = new Date(currentYear, 8, 1, 0, 0, 0, 0); 
+    } else if (currentMonth >= 4) {
+        // 4月〜8月：今年の4月1日
+        termStartDate = new Date(currentYear, 3, 1, 0, 0, 0, 0); 
+    } else {
+        // 1月〜3月：去年の9月1日
+        termStartDate = new Date(currentYear - 1, 8, 1, 0, 0, 0, 0);
+    }
 
     try {
         // 2. SQL文をJOINとサブクエリを含むものに変更
@@ -308,13 +362,13 @@ app.get("/api/comments", authMiddleware, async (req, res) => {
                 cl.user_id = $1 -- $1 に currentUserId が入る
             WHERE 
                 c.is_deleted = false
-                
+                AND c.created_at >= $2 -- 計算した今期の開始日以降のデータのみに絞る
             ORDER BY 
                 c.created_at DESC;
         `;
 
         // 3. queryの第2引数に [currentUserId] を渡す
-        const { rows } = await db.query(sql, [currentUserId]);
+        const { rows } = await db.query(sql, [currentUserId, termStartDate]);
 
         // 4. フロントエンドには 'likes' と 'is_liked_by_me' 、'user_nicknameが追加されたデータが返る
         res.json({ success: true, comments: rows });
