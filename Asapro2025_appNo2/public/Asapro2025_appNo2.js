@@ -38,90 +38,103 @@ const path = location.pathname.replace(/\/+$/, "");
 const isIndex = /(?:^|\/)(index\.html)?$/.test(path);  // ルート/ もOK
 const isHome = /(?:^|\/)home\.html$/.test(path);
 
-// LINEの埋め込みブラウザで開いたら標準ブラウザでリダイレクトさせる
+// ===== index.html 用（ログインページ）=====
+const googleBtn = $('#googleBtn');
+const googleMsg = $('#googleMsg');
+const lineWarningMsg = $('#line-warning-msg');
+const continueBtn = $('#continueBtn');          // 置いていなければ null のままでOK
+const logoutBtnOnIndex = $('#logoutBtnOnIndex');// 同上
+
+// LINEの埋め込みブラウザかどうかを判定
 const isLineBrowser = /Line/i.test(navigator.userAgent);
 const urlParams = new URLSearchParams(window.location.search);
 const hasExternalParam = urlParams.get('openExternalBrowser');
 
-if (isLineBrowser && !hasExternalParam) {
-        // 外部ブラウザで開き直すようリダイレクト
+// LINEの埋め込みブラウザで開いたら
+if (isLineBrowser) {
+    if (!hasExternalParam) {
+        // ① 自動で外部ブラウザ起動を試みる
         window.location.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'openExternalBrowser=1';
-}
+    } else {
+        // ② リダイレクトした（パラメータがついた）のに、まだLINEブラウザにいる場合
+        // ＝「自動起動が失敗した」と判断し、ボタンを消して警告メッセージを出す
+        if (googleBtn) googleBtn.style.display = 'none';
+        if (continueBtn) continueBtn.style.display = 'none';
+        if (logoutBtnOnIndex) logoutBtnOnIndex.style.display = 'none';
+        if (lineWarningMsg) lineWarningMsg.style.display = 'block';
+    }
+} else {
+        // 通常処理
+        if (googleBtn) {
+                const provider = new GoogleAuthProvider();
+                // Googleのログイン画面で、最初から特定のドメインを優先表示させる
+                provider.setCustomParameters({
+                        hd: "senshu-u.jp" // Hosted Domain: これを設定すると、ユーザー選択画面でこのドメインが優先されます
+                });
+                googleBtn.addEventListener('click', async () => {
+                        try {
+                                const result = await signInWithPopup(auth, provider);
+                                const user = result.user;
 
-// ===== index.html 用（ログインページ）=====
-const googleBtn = $('#googleBtn');
-const googleMsg = $('#googleMsg');
-const continueBtn = $('#continueBtn');          // 置いていなければ null のままでOK
-const logoutBtnOnIndex = $('#logoutBtnOnIndex');// 同上
-if (googleBtn) {
-        const provider = new GoogleAuthProvider();
-        // Googleのログイン画面で、最初から特定のドメインを優先表示させる
-        provider.setCustomParameters({
-                hd: "senshu-u.jp" // Hosted Domain: これを設定すると、ユーザー選択画面でこのドメインが優先されます
-        });
-        googleBtn.addEventListener('click', async () => {
-                try {
-                        const result = await signInWithPopup(auth, provider);
-                        const user = result.user;
+                                // ★★★ クライアント側でのドメインチェック ★★★
+                                const ALLOWED_DOMAIN = 'senshu-u.jp'; // 許可するドメイン
 
-                        // ★★★ クライアント側でのドメインチェック ★★★
-                        const ALLOWED_DOMAIN = 'senshu-u.jp'; // 許可するドメイン
+                                if (!user.email.endsWith('@' + ALLOWED_DOMAIN)) {
+                                        // ドメインが違う場合
 
-                        if (!user.email.endsWith('@' + ALLOWED_DOMAIN)) {
-                                // ドメインが違う場合
+                                        // 1. Firebase上から即座に削除する (または signOut させる)
+                                        // delete() を使うと、間違って作られたFirebaseアカウント自体を消せます
+                                        await user.delete().catch(e => console.error(e));
 
-                                // 1. Firebase上から即座に削除する (または signOut させる)
-                                // delete() を使うと、間違って作られたFirebaseアカウント自体を消せます
-                                await user.delete().catch(e => console.error(e));
+                                        // 2. エラーメッセージを表示
+                                        alert(`申し訳ありません。\n@${ALLOWED_DOMAIN} のメールアドレスのみログイン可能です。\n別のアカウントで試してください。`);
 
-                                // 2. エラーメッセージを表示
-                                alert(`申し訳ありません。\n@${ALLOWED_DOMAIN} のメールアドレスのみログイン可能です。\n別のアカウントで試してください。`);
+                                        // 3. 処理を中断
+                                        return;
+                                }
 
-                                // 3. 処理を中断
-                                return;
+                                const email = user.email;
+                                const uid = user.uid;
+
+                                // 表示用
+                                console.log('ログイン成功:', { email, uid });
+                                showMsg(googleMsg, `Googleでログインしました。\nメール: ${email}\nUID: ${uid}`);
+
+                                // ★★★ ここからDB連携を追加 ★★★
+                                // 2. サーバーAPIにユーザー情報を送信 (UPSERT)
+                                const idToken = await user.getIdToken();
+
+                                const response = await fetch('/api/auth/sync', {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${idToken}` },
+                                });
+
+                                const data = await response.json();
+
+                                if (!data.success) {
+                                        throw new Error(data.message || 'DBとの同期に失敗しました');
+                                }
+
+                                // 3. APIから返された「DBのシリアルID」を保存
+                                currentUserId = data.user.id;
+                                localStorage.setItem('currentUserId', currentUserId); // ローカルストレージにも保存
+
+                                console.log(`DB 同期成功: シリアルID (currentUserId) = ${currentUserId}`);
+                                showMsg(googleMsg, `DB同期成功 (ID: ${currentUserId})。ホームに移動します...`);
+                                // ★★★ DB連携ここまで ★★★
+
+                                // 保存して別ページで確認もできる
+                                localStorage.setItem('userEmail', email);
+                                localStorage.setItem('userUid', uid);
+
+                                const p = new URLSearchParams(location.search);
+                                location.replace(p.get('next') || 'home.html');
+                        } catch (err) {
+                                console.error(err);
+                                showMsg(googleMsg, `Googleログイン失敗: ${err.code || err.message}`);
                         }
-
-                        const email = user.email;
-                        const uid = user.uid;
-
-                        // 表示用
-                        console.log('ログイン成功:', { email, uid });
-                        showMsg(googleMsg, `Googleでログインしました。\nメール: ${email}\nUID: ${uid}`);
-
-                        // ★★★ ここからDB連携を追加 ★★★
-                        // 2. サーバーAPIにユーザー情報を送信 (UPSERT)
-                        const idToken = await user.getIdToken();
-
-                        const response = await fetch('/api/auth/sync', {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${idToken}` },
-                        });
-
-                        const data = await response.json();
-
-                        if (!data.success) {
-                                throw new Error(data.message || 'DBとの同期に失敗しました');
-                        }
-
-                        // 3. APIから返された「DBのシリアルID」を保存
-                        currentUserId = data.user.id;
-                        localStorage.setItem('currentUserId', currentUserId); // ローカルストレージにも保存
-
-                        console.log(`DB 同期成功: シリアルID (currentUserId) = ${currentUserId}`);
-                        showMsg(googleMsg, `DB同期成功 (ID: ${currentUserId})。ホームに移動します...`);
-                        // ★★★ DB連携ここまで ★★★
-
-                        // 保存して別ページで確認もできる
-                        localStorage.setItem('userEmail', email);
-                        localStorage.setItem('userUid', uid);
-
-                        const p = new URLSearchParams(location.search);
-                        location.replace(p.get('next') || 'home.html');
-                } catch (err) {
-                        console.error(err);
-                        showMsg(googleMsg, `Googleログイン失敗: ${err.code || err.message}`);
-                }
-        });
+                });
+        }
 }
 
 

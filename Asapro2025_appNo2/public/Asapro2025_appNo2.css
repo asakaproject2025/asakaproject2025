@@ -111,6 +111,27 @@ body.modal-open {
     letter-spacing: 0.03em;
 }
 
+/* LINEブラウザ用の警告メッセージ（初期状態は非表示） */
+#line-warning-msg {
+  display: none;
+  color: #d9534f;
+  background-color: #fdf0ef;
+  border: 1px solid #d9534f;
+  border-radius: 5px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+#line-warning-msg p {
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+#line-warning-msg p:last-child {
+  margin-bottom: 0;
+}
+
 #homePage {
     padding-top: 130px;
 }
