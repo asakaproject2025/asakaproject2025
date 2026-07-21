@@ -38,6 +38,15 @@ const path = location.pathname.replace(/\/+$/, "");
 const isIndex = /(?:^|\/)(index\.html)?$/.test(path);  // ルート/ もOK
 const isHome = /(?:^|\/)home\.html$/.test(path);
 
+// LINEの埋め込みブラウザで開いたら標準ブラウザでリダイレクトさせる
+const isLineBrowser = /Line/i.test(navigator.userAgent);
+if (isLineBrowser) {
+  // ① 「Safari/Chromeで開いてください」という専用画面を表示する
+  // または
+  // ② ?openExternalBrowser=1 をつけてリダイレクトを試みる
+  window.location.href = "https://asakaproject2025-u7ed.onrender.com/index.html?openExternalBrowser=1";
+}
+
 // ===== index.html 用（ログインページ）=====
 const googleBtn = $('#googleBtn');
 const googleMsg = $('#googleMsg');
