@@ -40,11 +40,12 @@ const isHome = /(?:^|\/)home\.html$/.test(path);
 
 // LINEの埋め込みブラウザで開いたら標準ブラウザでリダイレクトさせる
 const isLineBrowser = /Line/i.test(navigator.userAgent);
-if (isLineBrowser) {
-  // ① 「Safari/Chromeで開いてください」という専用画面を表示する
-  // または
-  // ② ?openExternalBrowser=1 をつけてリダイレクトを試みる
-  window.location.href = "https://asakaproject2025-u7ed.onrender.com/index.html?openExternalBrowser=1";
+const urlParams = new URLSearchParams(window.location.search);
+const hasExternalParam = urlParams.get('openExternalBrowser');
+
+if (isLineBrowser && !hasExternalParam) {
+        // 外部ブラウザで開き直すようリダイレクト
+        window.location.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'openExternalBrowser=1';
 }
 
 // ===== index.html 用（ログインページ）=====
