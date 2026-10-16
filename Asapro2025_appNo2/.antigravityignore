@@ -1,0 +1,11 @@
+# 認証キー（絶対にアップロードしない）
+serviceAccountKey.json
+
+# 環境変数ファイル
+.env
+
+# Node.jsのパッケージ（サイズが大きすぎるため無視する）
+node_modules/
+
+# Macの不要な隠しファイル
+.DS_Store

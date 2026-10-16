@@ -1,0 +1,845 @@
+import express from "express";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import 'dotenv/config';// DBのコンフィグへアクセス
+import db from '../src/db/pool.js'; // DBプールをインポート
+import authMiddleware from '../src/middleware/auth.js' //認証APIのインポート
+
+import admin from 'firebase-admin';
+import { read } from "fs";
+
+const app = express();
+const PORT = 3000;
+
+// ESM対応とデータディレクトリのパス設定
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const dataDir = path.join(__dirname, "data");
+
+// 1. JSON ボディパーサーを有効化（POSTリクエストで送られたJSONデータを受け取るため）
+app.use(express.json());
+
+// 静的ファイル提供（HTMLやJSなど）
+app.use(express.static(path.join(__dirname, "public")));
+
+// ヘルパー関数: JSONファイルを「同期的」に読み込む
+function readJsonFile(filename) {
+    try {
+        const filePath = path.join(dataDir, filename);
+        // ★ readFileSync (Sync = 同期) を使う
+        const data = fs.readFileSync(filePath, "utf8");
+        return JSON.parse(data);
+    } catch (error) {
+        console.error(`Error reading ${filename}:`, error.message);
+        return filename.includes("comments") ? [] : {};
+    }
+}
+
+// ヘルパー関数: JSONファイルにデータを書き込む
+async function writeJsonFile(filename, data) {
+    try {
+        const filePath = path.join(dataDir, filename);
+        await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+    } catch (error) {
+        console.error(`Error writing to ${filename}:`, error.message);
+    }
+}
+
+// === JSONファイル読み込み (同期版) ===
+
+//// すでに初期化されていないかチェック（Next.jsなどで複数回実行されるのを防ぐため）
+if (!admin.apps.length) {
+  // 1. Vercelの環境変数からBase64文字列を取得
+  const base64String = process.env.GOOGLE_CREDENTIALS_BASE64;
+
+  if (!base64String) {
+    throw new Error('環境変数 GOOGLE_CREDENTIALS_BASE64 が設定されていません');
+  }
+
+  // 2. Base64文字列をデコードしてJSONオブジェクトに変換
+  const buffer = Buffer.from(base64String, 'base64');
+  const serviceAccount = JSON.parse(buffer.toString('utf-8'));
+
+  // 3. Firebase Admin SDKの初期化（Renderでファイルを渡していたのと同じ状態）
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
+
+// API 
+/*前のjsonファイル参照
+app.get("/api/classrooms", async (req, res) => {
+    const classrooms = await readJsonFile("classrooms.json");
+    res.json(classrooms);
+});
+
+app.get("/api/classrooms/:id", async (req, res) => {
+    const classrooms = await readJsonFile("classrooms.json");
+    const room = classrooms.find(r => r.id === Number(req.params.id));
+    if (!room) return res.status(404).json({ error: "Not found" });
+    res.json(room);
+});
+*/
+
+app.get("/api/classrooms", async (req, res) => {
+    try {
+        // DBの classrooms テーブルから全データを取得
+        // 今期の開始日（ターム開始日）を計算する
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // JSの月は0〜11なので+1する
+
+        let termStartDate;
+        if (currentMonth >= 9) {
+            // 9月〜12月：今年の9月1日
+            termStartDate = new Date(currentYear, 8, 1, 0, 0, 0, 0); 
+        } else if (currentMonth >= 4) {
+            // 4月〜8月：今年の4月1日
+            termStartDate = new Date(currentYear, 3, 1, 0, 0, 0, 0); 
+        } else {
+            // 1月〜3月：去年の9月1日
+            termStartDate = new Date(currentYear - 1, 8, 1, 0, 0, 0, 0);
+        }
+        
+        // 1. クライアントから送られてくる曜日と時限を受け取る
+        const { day, period } = req.query;
+
+        // 2. SQLクエリを作成
+        // classroomsテーブルをベースに、サブクエリでuser_submissionsをチェックします
+        const sql = `
+            SELECT 
+                c.*,
+                -- ★ 追加: 設備フラグを 'tags' 配列にまとめる処理
+                -- 1. CASE文で true なら '名前'、false なら NULL に変換して配列にする
+                -- 2. ARRAY_REMOVE で NULL を取り除く -> ['コンセント', 'WiFi'] のようになる
+                ARRAY_REMOVE(ARRAY[
+                    CASE WHEN c.has_outlet THEN 'コンセント' ELSE NULL END,
+                    CASE WHEN c.has_wifi THEN 'WiFi' ELSE NULL END,
+                    CASE WHEN c.has_whiteboard THEN 'ホワイトボード' ELSE NULL END,
+                    CASE WHEN c.has_blackboard THEN '黒板' ELSE NULL END,
+                    CASE WHEN c.is_food_allowed THEN '飲食可' ELSE NULL END,
+                    CASE WHEN c.has_extension_cord THEN '延長コード有' ELSE NULL END
+                ], NULL) AS tags,
+
+                -- ★ ステータス判定ロジック
+                -- user_submissionsテーブルで、
+                -- 「この教室(c.id)」かつ「指定された曜日・時限」かつ「has_class = true」の
+                -- 行数が 0より大きければ '授業'、そうでなければ '空き' とする
+                CASE 
+                    WHEN (
+                        SELECT 
+                            COUNT(*) FILTER (WHERE us.has_class = true) - 
+                            COUNT(*) FILTER (WHERE us.has_class = false)
+                        FROM user_submissions us 
+                        WHERE us.classroom_id = c.id 
+                          AND us.time_slot_day = $1 
+                          AND us.time_slot_period = $2
+                          -- 計算した今期の開始日以降のデータのみに絞る
+                          AND us.created_at >= $3
+                    ) > 0 THEN '授業' 
+                    ELSE '空き' 
+                END AS status
+
+            FROM classrooms c
+            ORDER BY
+                -- ★ 1. 号館ソート
+                CAST(REPLACE(building, '号館', '') AS INTEGER) ASC,
+                
+                -- ★ 2. 教室名ソート
+                
+                -- 2a. まず「数字グループ(1)」か「文字グループ(2)」かに分ける
+                CASE 
+                    WHEN name ~ '^[0-9]' THEN 1
+                    ELSE 2
+                END ASC,
+                
+                -- 2b. 「数字グループ」の中でのソート
+                -- (先頭の数字を抜き出して、数値として並べる)
+                CASE 
+                    WHEN name ~ '^[0-9]' THEN CAST(substring(name from '^[0-9]+') AS INTEGER)
+                    ELSE NULL 
+                END ASC,
+                
+                -- 2c. 「文字グループ」の中でのソート
+                -- (そのまま辞書順で並べる)
+                CASE 
+                    WHEN name ~ '^[0-9]' THEN NULL 
+                    ELSE name
+                END ASC;
+        `;
+        const params = [day, period, termStartDate];
+
+        const { rows } = await db.query(sql, params);
+        res.json(rows);
+
+    } catch (err) {
+        console.error('APIエラー (GET /api/classrooms):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラー' });
+    }
+});
+
+app.get("/api/classrooms/:id", async (req, res) => {
+    try {
+        const { id } = req.params; // URLから :id を取得
+
+        const sql = "SELECT * FROM classrooms WHERE id = $1;";
+        const params = [id];
+
+        const { rows } = await db.query(sql, params);
+
+        // 
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Classroom not found' });
+        }
+
+        // ★ 以前と同じように、単一のオブジェクト(rows[0])を返す
+        // (app.js は 'room' という変数名で受け取る想定)
+        res.json(rows[0]);
+
+    } catch (err) {
+        console.error(`APIエラー (GET /api/classrooms/${req.params.id}):`, err.stack);
+        res.status(500).json({ success: false, message: 'DBエラー' });
+    }
+});
+
+
+// GET: 全投票データを取得
+app.get("/api/votes", authMiddleware, async (req, res) => {
+    try {
+        // URLクエリパラメータから変数を取得 
+        const { roomId, day, periodId } = req.query;
+
+        // (※認証実装前のテスト用: 'user_firebase_uid_abc123' などを入れるか、nullのままにする)
+        const currentUserId = req.currentUserId;
+        //const currentUserId = 12;
+
+        // 必要なパラメータが渡されたかチェック
+        if (!roomId || !day || !periodId) {
+            return res.status(400).json({
+                success: false,
+                message: "roomId, day, periodId のクエリパラメータが必要です。"
+            });
+        }
+        // 今期の開始日（ターム開始日）を計算する
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // JSの月は0〜11なので+1する
+
+        let termStartDate;
+        if (currentMonth >= 9) {
+            // 9月〜12月：今年の9月1日
+            termStartDate = new Date(currentYear, 8, 1, 0, 0, 0, 0); 
+        } else if (currentMonth >= 4) {
+            // 4月〜8月：今年の4月1日
+            termStartDate = new Date(currentYear, 3, 1, 0, 0, 0, 0); 
+        } else {
+            // 1月〜3月：去年の9月1日
+            termStartDate = new Date(currentYear - 1, 8, 1, 0, 0, 0, 0);
+        }
+        
+        // SQL (CTEを使って2つの情報を同時に取得)
+        const sql = `
+            WITH aggregated_counts AS (
+                -- (A) まず、指定された時間枠の全投票を集計
+                SELECT
+                    COUNT(*) FILTER (WHERE has_class = true) AS class_count,
+                    COUNT(*) FILTER (WHERE has_class = false) AS free_count,
+                    COUNT(*) FILTER (WHERE congestion_level = 'garagara') AS garagara_count,
+                    COUNT(*) FILTER (WHERE congestion_level = 'sukuname') AS sukuname_count,
+                    COUNT(*) FILTER (WHERE congestion_level = 'hutsu') AS hutsu_count,
+                    COUNT(*) FILTER (WHERE congestion_level = 'konzatsu') AS konzatsu_count
+                FROM
+                    user_submissions
+                WHERE
+                    classroom_id = $1
+                    AND time_slot_day = $2
+                    AND time_slot_period = $3
+                    AND created_at >= $5 -- ユーザーの投票を今期分に絞る
+            ),
+            my_vote AS (
+                -- (B) 次に、同じ時間枠に対する「私」の投票を探す
+                SELECT
+                    CASE
+                        WHEN has_class = true THEN 'class'
+                        WHEN has_class = false THEN 'free'
+                        ELSE congestion_level -- 'garagara', 'sukuname', 'hutsu', 'konzatsu', or NULL
+                    END AS type
+                FROM
+                    user_submissions
+                WHERE
+                    classroom_id = $1
+                    AND time_slot_day = $2
+                    AND time_slot_period = $3
+                    AND user_id = $4 -- 「私」のID
+                    AND created_at >= $5 --「私」の過去期の投票も除外する
+            )
+            -- (C) 2つの結果を結合して返す
+            SELECT
+                (SELECT type FROM my_vote) AS my_vote_type, -- 私の投票（"class", "free", ... or NULL）
+                ac.* -- 集計結果 (class_count, free_count, ...)
+            FROM
+                aggregated_counts ac;
+        `;
+        const params = [roomId, day, periodId, currentUserId, termStartDate];
+        const { rows } = await db.query(sql, params);
+
+        // 4. クライアントに最新データを返す
+        res.json({ success: true, votes: rows[0] });
+    } catch (err) {
+        console.error('APIエラー (GET /vote):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラー' });
+    }
+});
+
+/// GET: 全コメントデータを取得 (いいね、ニックネーム情報付き)
+app.get("/api/comments", authMiddleware, async (req, res) => {
+
+    // 1. (将来のFirebase認証用) 
+    // ログインしていなければ req.user は undefined => currentUserId は null になる
+    const currentUserId = req.currentUserId;
+
+    // (※認証実装前のテスト用: 'user_firebase_uid_abc123' などを入れるか、nullのままにする)
+    //const currentUserId = 12;
+
+    // 今期の開始日（ターム開始日）を計算する
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // JSの月は0〜11なので+1する
+
+    let termStartDate;
+    if (currentMonth >= 9) {
+        // 9月〜12月：今年の9月1日
+        termStartDate = new Date(currentYear, 8, 1, 0, 0, 0, 0); 
+    } else if (currentMonth >= 4) {
+        // 4月〜8月：今年の4月1日
+        termStartDate = new Date(currentYear, 3, 1, 0, 0, 0, 0); 
+    } else {
+        // 1月〜3月：去年の9月1日
+        termStartDate = new Date(currentYear - 1, 8, 1, 0, 0, 0, 0);
+    }
+
+    try {
+        // 2. SQL文をJOINとサブクエリを含むものに変更
+        const sql = `
+            SELECT 
+                c.id, c.content, c.classroom_id, c.time_slot_day, c.time_slot_period, c.created_at,
+
+                CASE 
+                    WHEN c.user_id =  $1 THEN true 
+                    ELSE false 
+                END AS is_my_comment,
+                
+                -- (i) ユーザーのニックネームを取得
+                -- (nicknameが未設定の場合は 'ゲスト' や name を使う)
+                COALESCE(u.nickname, '名無しさん') AS user_nickname,
+
+                -- (A) このコメントの総いいね数をカウントし、'likes' カラムとして追加
+                (SELECT COUNT(*) FROM comment_likes cl_count WHERE cl_count.comment_id = c.id) AS likes,
+                
+                -- (B) 「私」がいいねしているかをチェックし、'is_liked_by_me' カラムとして追加
+                CASE 
+                    WHEN cl.user_id IS NOT NULL THEN true 
+                    ELSE false 
+                END AS is_liked_by_me
+                
+            FROM 
+                comments c
+            -- (ii) ニックネームのためにusersと横付け
+            JOIN
+                users u ON c.user_id = u.id
+            -- (C) 「私」( $1 ) のいいね記録だけを LEFT JOIN で横付け
+            LEFT JOIN 
+                comment_likes cl 
+            ON 
+                c.id = cl.comment_id 
+            AND 
+                cl.user_id = $1 -- $1 に currentUserId が入る
+            WHERE 
+                c.is_deleted = false
+                AND c.created_at >= $2 -- 計算した今期の開始日以降のデータのみに絞る
+            ORDER BY 
+                c.created_at DESC;
+        `;
+
+        // 3. queryの第2引数に [currentUserId] を渡す
+        const { rows } = await db.query(sql, [currentUserId, termStartDate]);
+
+        // 4. フロントエンドには 'likes' と 'is_liked_by_me' 、'user_nicknameが追加されたデータが返る
+        res.json({ success: true, comments: rows });
+
+    } catch (err) {
+        console.error('APIエラー (GET /comments):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラー' });
+    }
+});
+
+app.post("/api/comments", authMiddleware, async (req, res) => {
+    // クライアントから送信されるコメントデータを受け取る
+    const { roomId, text, periodId, day } = req.body; // ★ day を追加 ★
+
+    // ★ user_id はFirebase実装まで固定値（12）
+    const userId = req.currentUserId;
+    //const userId = 12;
+
+    // 1. 必須項目チェック
+    if (!roomId || !text || !periodId || !day) { // ★ day を必須チェックに追加 ★
+        return res.status(400).json({ error: "roomId, text, periodId, and day are required." });
+    }
+
+    try {
+        // 2. DBに保存 (RETURNING * で保存した行の全情報を返す)
+        const sql = `
+      INSERT INTO comments (content, user_id, classroom_id, time_slot_day, time_slot_period, created_at) 
+      VALUES ($1, $2, $3, $4, $5, NOW()) 
+      RETURNING *
+    `;
+        // $1, $2, $3, $4 に対応する値を配列で渡す
+        const params = [text, userId, roomId, day, periodId];
+
+        const { rows } = await db.query(sql, params);
+
+        // 3. 保存成功をクライアントに通知 (HTTPステータス 201 = Created)
+        res.status(201).json({ success: true, newComment: rows[0] });
+
+    } catch (err) {
+        console.error('APIエラー (POST /comments):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラー' });
+    }
+});
+
+app.post("/api/votes", authMiddleware, async (req, res) => {
+
+    // (A) ユーザーIDとリクエストボディを取得
+    const currentUserId = req.currentUserId;
+    const { type, roomId, day, periodId } = req.body;
+
+    // (B) バリデーション
+    const validVoteTypes = ["class", "free", "garagara", "sukuname", "hutsu", "konzatsu"];
+    if (!validVoteTypes.includes(type) || !roomId || !day || !periodId) {
+        return res.status(400).json({ error: "Invalid request parameters." });
+    }
+
+    try {
+        // --- ★ ステップ 1: ユーザーの「現在の投票」を検索 ★ ---
+        const sqlFind = `
+            SELECT 
+                CASE
+                    WHEN has_class = true THEN 'class'
+                    WHEN has_class = false THEN 'free'
+                    ELSE congestion_level
+                END AS current_type
+            FROM user_submissions
+            WHERE user_id = $1
+              AND classroom_id = $2
+              AND time_slot_day = $3
+              AND time_slot_period = $4;
+        `;
+        const findParams = [currentUserId, roomId, day, periodId];
+        const findResult = await db.query(sqlFind, findParams);
+
+        const currentVoteRow = findResult.rows[0];
+        // 存在すれば "class" や "garagara"、なければ null
+        const currentType = currentVoteRow ? currentVoteRow.current_type : null;
+
+        // --- ★ ステップ 2: 実行するアクションを決定 ★ ---
+        if (currentType === type) {
+
+            // --- アクション: DELETE (取り消し) ---
+            // 押されたボタンが現在の投票と同じなので、投票を取り消す
+            console.log(`投票取り消し: User ${currentUserId}, Slot ${roomId}-${day}-${periodId}`);
+            const sqlDelete = `
+                DELETE FROM user_submissions
+                WHERE user_id = $1
+                  AND classroom_id = $2
+                  AND time_slot_day = $3
+                  AND time_slot_period = $4;
+            `;
+            // (findParams と同じパラメータで削除)
+            await db.query(sqlDelete, findParams);
+
+        } else {
+
+            // --- アクション: UPSERT (新規作成 または 変更) ---
+            // 押されたボタンが違う、または新規投票
+            console.log(`投票UPSERT: User ${currentUserId}, New Type ${type}`);
+
+            // (C) DBに保存する値を準備
+            let hasClass = null;
+            let congestionLevel = null;
+            if (type === "class") hasClass = true;
+            else if (type === "free") hasClass = false;
+            else congestionLevel = type;
+
+            // (あなたの既存のUPSERTロジックをそのまま使用)
+            const sqlUpsert = `
+                INSERT INTO user_submissions (user_id, classroom_id, time_slot_day, time_slot_period, has_class, congestion_level, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                ON CONFLICT (user_id, classroom_id, time_slot_day, time_slot_period) 
+                DO UPDATE SET 
+                    has_class = CASE 
+                        WHEN EXCLUDED.has_class IS NOT NULL THEN EXCLUDED.has_class 
+                        ELSE user_submissions.has_class 
+                    END,
+                    congestion_level = CASE 
+                        WHEN EXCLUDED.congestion_level IS NOT NULL THEN EXCLUDED.congestion_level 
+                        ELSE user_submissions.congestion_level 
+                    END,
+                    created_at = NOW(); -- 投票日時を更新
+            `;
+            const paramsUpsert = [currentUserId, roomId, day, periodId, hasClass, congestionLevel];
+            await db.query(sqlUpsert, paramsUpsert);
+        }
+
+        // --- ★ ステップ 3: (DELETEまたはUPSERT後の)最新の集計結果を取得 ★ ---
+        // (あなたの既存の集計SQLをそのまま使用)
+        const sqlCounts = `
+            WITH aggregated_counts AS (
+                SELECT
+                    COUNT(*) FILTER (WHERE has_class = true) AS class_count,
+                    COUNT(*) FILTER (WHERE has_class = false) AS free_count,
+                    COUNT(*) FILTER (WHERE congestion_level = 'garagara') AS garagara_count,
+                    COUNT(*) FILTER (WHERE congestion_level = 'sukuname') AS sukuname_count,
+                    COUNT(*) FILTER (WHERE congestion_level = 'hutsu') AS hutsu_count,
+                    COUNT(*) FILTER (WHERE congestion_level = 'konzatsu') AS konzatsu_count
+                FROM
+                    user_submissions
+                WHERE
+                    classroom_id = $2
+                    AND time_slot_day = $3
+                    AND time_slot_period = $4
+            ),
+            my_vote AS (
+                SELECT
+                    CASE
+                        WHEN has_class = true THEN 'class'
+                        WHEN has_class = false THEN 'free'
+                        ELSE congestion_level
+                    END AS type
+                FROM
+                    user_submissions
+                WHERE
+                    user_id = $1 -- 「私」のID
+                    AND time_slot_day = $3
+                    AND time_slot_period = $4
+                    AND classroom_id = $2
+            )
+            SELECT
+                (SELECT type FROM my_vote) AS my_vote_type,
+                ac.*
+            FROM
+                aggregated_counts ac;
+        `;
+
+        // (findParams と同じパラメータを使用)
+        const { rows } = await db.query(sqlCounts, findParams);
+
+        // --- ★ ステップ 4: クライアントに最新データを返す ★ ---
+        res.json({ success: true, voteRes: rows[0] });
+
+    } catch (err) {
+        // (ネストされていた try-catch を統合し、エラーログのタイポを修正)
+        console.error('APIエラー (POST /votes):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラー' });
+    }
+});
+
+// POST: いいねを記録・更新
+app.post("/api/comments/:id/like", authMiddleware, async (req, res) => {
+    // URLパスからコメントIDを取得
+    const commentId = Number(req.params.id);
+
+    if (isNaN(commentId)) {
+        return res.status(400).json({ error: "Invalid comment ID." });
+    }
+
+    // ★ user_id はFirebase実装まで固定値（12）
+    const currentUserId = req.currentUserId;
+    //const currentUserId = 12;; // 動作テスト用の仮ID
+
+    if (!currentUserId) {
+        return res.status(401).json({ success: false, message: '認証が必要です' });
+    }
+
+    try {
+        // --- トグルロジック ---
+
+        // 1. まず INSERT を試みる (ON CONFLICT を指定)
+        // (user_id, comment_id) の組み合わせが競合(CONFLICT)したら、
+        // DO NOTHING (何もしない)
+        const insertQuery = `
+            INSERT INTO comment_likes (user_id, comment_id, created_at)
+            VALUES ($1, $2, NOW())
+            ON CONFLICT (user_id, comment_id) 
+            DO NOTHING;
+        `;
+        const insertResult = await db.query(insertQuery, [currentUserId, commentId]);
+
+        let liked = true; // デフォルトは「いいねした」
+
+        // 2. INSERT の結果を判定
+        if (insertResult.rowCount === 0) {
+            // rowCount が 0 ＝ INSERTされなかった (競合した)
+            // ＝ すでに「いいね」していた
+            // ＝ これから「いいねを取り消す (DELETE)」
+
+            const deleteQuery = `
+                DELETE FROM comment_likes 
+                WHERE user_id = $1 AND comment_id = $2;
+            `;
+            await db.query(deleteQuery, [currentUserId, commentId]);
+            liked = false; // 状態は「いいね解除」
+        }
+
+        // 3. 最新のいいね総数を取得
+        const countResult = await db.query(
+            'SELECT COUNT(*) FROM comment_likes WHERE comment_id = $1',
+            [commentId]
+        );
+        const newLikeCount = parseInt(countResult.rows[0].count, 10);
+
+        // 4. クライアントに最新の状態を返す
+        res.json({
+            success: true,
+            liked: liked, // あなたが今いいねしたか (true/false)
+            newLikeCount: newLikeCount // 最新の総いいね数
+        });
+
+    } catch (error) {
+        console.error("Failed to process like request:", error);
+        res.status(500).json({ error: "Failed to update like count." });
+    }
+});
+
+/**
+ * POST /api/user/nickname
+ * ログイン中のユーザーのニックネームを登録・更新する
+ */
+app.post("/api/user/nickname", authMiddleware, async (req, res) => {
+    const currentUserId = req.currentUserId;
+    const { nickname } = req.body;
+
+    // バリデーション
+    if (!nickname || typeof nickname !== 'string' || nickname.trim() === '') {
+        return res.status(400).json({ success: false, message: 'ニックネームを入力してください。' });
+    }
+    if (nickname.length > 20) {
+        return res.status(400).json({ success: false, message: 'ニックネームは20文字以内で入力してください。' });
+    }
+
+    try {
+        // ユーザーIDに基づいてnicknameを更新
+        const sql = `
+            UPDATE users 
+            SET nickname = $1 
+            WHERE id = $2 
+            RETURNING id, email, nickname;
+        `;
+        const params = [nickname, currentUserId];
+        const { rows } = await db.query(sql, params);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'ユーザーが見つかりません。' });
+        }
+
+        res.json({
+            success: true,
+            message: 'ニックネームを更新しました。',
+            user: rows[0]
+        });
+
+    } catch (err) {
+        console.error('APIエラー (PUT /user/nickname):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラーが発生しました。' });
+    }
+});
+
+/**
+ * GET /api/user/me
+ * ログイン中のユーザー自身の情報を取得する
+ */
+app.get("/api/user/me", authMiddleware, async (req, res) => {
+    const currentUserId = req.currentUserId;
+
+    try {
+        // 自分の情報を取得
+        const sql = `
+            SELECT 
+                u.id, 
+                u.email, 
+                u.nickname,
+                
+                -- 1. 授業あり/なしボタンを押した数 (has_class が記録されている行)
+                (SELECT COUNT(*) FROM user_submissions WHERE user_id = u.id AND has_class IS NOT NULL) AS vote_class_count,
+                
+                -- 2. 混雑度ボタンを押した数 (congestion_level が記録されている行)
+                (SELECT COUNT(*) FROM user_submissions WHERE user_id = u.id AND congestion_level IS NOT NULL) AS vote_congestion_count,
+                
+                -- 3. コメント投稿数 (comment_text が記録されている行)
+                (SELECT COUNT(*) FROM comments WHERE user_id = u.id AND content IS NOT NULL) AS comment_count,
+                
+                -- 4. コメントにもらったいいね総数
+                -- (自分の投稿(us)に対して、いいねテーブル(cl)がついている数をカウント)
+                (
+                    SELECT COUNT(*)
+                    FROM comment_likes cl
+                    JOIN comments us ON cl.comment_id = us.id
+                    WHERE us.user_id = u.id
+                ) AS got_like_count
+
+            FROM users u
+            WHERE u.id = $1;
+        `;
+        const { rows } = await db.query(sql, [currentUserId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'ユーザーが見つかりません。' });
+        }
+
+        // 情報を返す
+        res.json({
+            success: true,
+            user: rows[0]
+        });
+
+    } catch (err) {
+        console.error('APIエラー (GET /user/me):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラーが発生しました。' });
+    }
+});
+
+/**
+ * POST /api/auth/sync
+ * Firebase UID と Email を受け取り、DBのユーザーを検索または作成する (UPSERT)
+ * 成功すると、DBのシリアルID (id) を含むユーザー情報を返す
+ */
+app.post('/api/auth/sync', async (req, res) => {
+    const authorization = req.headers.authorization;
+    if (!authorization || !authorization.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, message: '認証トークンが必要です' });
+    }
+    const idToken = authorization.split('Bearer ')[1];
+
+    try {
+        // トークンを検証し、信頼できる情報を取得
+        // ここでFirebaseに問い合わせて「このトークンは本物か？」を確認します
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+
+        // ★ ここで取り出した情報だけが信用できます
+        const firebase_uid = decodedToken.uid;
+        const email = decodedToken.email;
+
+        // 許可するドメイン (例: @senshu-u.jp)
+        const ALLOWED_DOMAIN = 'senshu-u.jp';
+
+        // メールアドレスが許可ドメインで終わっているかチェック
+        if (!email.endsWith('@' + ALLOWED_DOMAIN)) {
+            console.warn(`不正なドメインからのアクセス: ${email}`);
+            return res.status(403).json({
+                success: false,
+                message: `許可されていないメールアドレスです。${ALLOWED_DOMAIN} のアカウントのみ使用可能です。`
+            });
+        }
+
+        // 2. 既存ユーザーを検索 (firebase_uid で)
+        let userResult = await db.query('SELECT id, email FROM users WHERE firebase_uid = $1', [firebase_uid]);
+
+        if (userResult.rows.length > 0) {
+            // --- 既存ユーザーが見つかった場合 ---
+            const existingUser = userResult.rows[0];
+            console.log(`既存ユーザー ログイン: DB ID=${existingUser.id}`);
+
+            // (オプション: emailが変更されていたら更新するロジックもここに入れられる)
+
+            res.status(200).json({
+                success: true,
+                message: '既存ユーザー ログイン成功',
+                user: {
+                    id: existingUser.id, // ★ DBのシリアルID
+                    email: existingUser.email
+                }
+            });
+
+        } else {
+            // --- 初回ログインの場合 (INSERT) ---
+            console.log('初回ログイン。ユーザーを作成します...');
+            const insertResult = await db.query(
+                'INSERT INTO users (firebase_uid, email, created_at) VALUES ($1, $2, NOW()) RETURNING id, email',
+                [firebase_uid, email]
+            );
+
+            const newUser = insertResult.rows[0];
+            console.log(`新規ユーザー 作成成功: DB ID=${newUser.id}`);
+
+            res.status(201).json({
+                success: true,
+                message: '新規ユーザー 作成成功',
+                user: {
+                    id: newUser.id, // ★ DBのシリアルID
+                    email: newUser.email
+                }
+            });
+        }
+
+    } catch (err) {
+        // トークン検証エラーのハンドリング
+        if (err.code && err.code.startsWith('auth/')) {
+            console.error('トークン検証失敗:', err);
+            return res.status(401).json({ success: false, message: '無効なトークンです' });
+        }
+
+        // DB系のエラーハンドリング
+        if (err.code === '23505') { // unique_violation
+            // 並列リクエストなどで稀にここに来る可能性があります
+            console.error('重複エラー:', err.detail);
+            return res.status(409).json({ success: false, message: 'ユーザー重複エラー' });
+        }
+        console.error('APIエラー (POST /auth/sync):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラー' });
+    }
+});
+
+
+app.patch("/api/comments/:id", authMiddleware, async (req, res) => {
+    // 1. URLからコメントIDを取得
+    const commentId = req.params.id;
+    
+    // 2. 認証ミドルウェアからユーザーIDを取得 (操作者)
+    const currentUserId = req.currentUserId;
+
+    // 3. リクエストボディから設定したい状態を取得 (true:削除, false:復元)
+    const { is_deleted } = req.body;
+
+    // バリデーション
+    if (typeof is_deleted !== 'boolean') {
+        return res.status(400).json({ success: false, message: 'is_deleted (true/false) が必要です。' });
+    }
+
+    try {
+        // 4. DB更新
+        // ★重要: WHERE句に user_id を追加して「自分のコメント」だけを更新できるようにする
+        const sql = `
+            UPDATE comments
+            SET is_deleted = $1
+            WHERE id = $2 AND user_id = $3
+            RETURNING id, is_deleted;
+        `;
+        
+        const params = [is_deleted, commentId, currentUserId];
+        const { rows } = await db.query(sql, params);
+
+        // 更新対象が見つからなかった場合 (ID違い または 他人のコメント)
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'コメントが見つからないか、権限がありません。' });
+        }
+
+        res.json({ success: true, comment: rows[0] });
+
+    } catch (err) {
+        console.error('APIエラー (PATCH /comments/:id):', err.stack);
+        res.status(500).json({ success: false, message: 'DBエラー' });
+    }
+});
+
+// ▼ Vercel用にこれだけ追加する！
+export default app;
